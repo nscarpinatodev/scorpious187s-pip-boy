@@ -1,0 +1,56 @@
+{{!-- DATA: level / skills / perks / traits --}}
+<div class="pip-data">
+
+	<div class="pip-inv-summary">
+		<span>LEVEL {{data.level}}</span>
+		<span>XP {{data.currentXP}}{{#if data.nextLevelXP}} / {{data.nextLevelXP}}{{/if}}</span>
+	</div>
+	{{#if data.origin}}<div class="pip-origin">Origin: {{data.origin}}</div>{{/if}}
+
+	<h3 class="pip-section-title"><i class="fas fa-list-check"></i> SKILLS</h3>
+	<ul class="pip-skill-list">
+		{{#each data.skills}}
+		<li class="pip-skill{{#if tagged}} tagged{{/if}}" data-item-id="{{id}}">
+			<span class="pip-skill-name" data-action="rollSkill"
+				data-tooltip="Roll {{name}} ({{attribute}}) — right-click to pick attribute">{{name}}</span>
+			<span class="pip-skill-attr">{{attribute}}</span>
+			<span class="pip-skill-rank">{{rank}}</span>
+			{{#if tagged}}<i class="fas fa-tag pip-tag" data-tooltip="Tagged"></i>{{/if}}
+			<span class="pip-skill-attrs">
+				{{#each @root.data.attrs}}
+				<button type="button" class="pip-attr-pick" data-action="rollSkill" data-attr="{{key}}"
+					data-tooltip="Roll with {{label}}">{{letter}}</button>
+				{{/each}}
+			</span>
+		</li>
+		{{else}}
+		<li class="pip-empty">No skills.</li>
+		{{/each}}
+	</ul>
+
+	<h3 class="pip-section-title"><i class="fas fa-star"></i> PERKS</h3>
+	<ul class="pip-perk-list">
+		{{#each data.perks}}
+		<li class="pip-perk" data-item-id="{{id}}" data-action="showInfo" data-tooltip="View details">
+			<img class="pip-item-img" src="{{img}}" alt="" />
+			<span class="pip-item-name">{{name}}</span>
+			{{#if multiRank}}<span class="pip-perk-rank">Rank {{rank}}/{{rankMax}}</span>{{/if}}
+		</li>
+		{{else}}
+		<li class="pip-empty">No perks.</li>
+		{{/each}}
+	</ul>
+
+	{{#if data.traits.length}}
+	<h3 class="pip-section-title"><i class="fas fa-dna"></i> TRAITS</h3>
+	<ul class="pip-perk-list">
+		{{#each data.traits}}
+		<li class="pip-perk" data-item-id="{{id}}" data-action="showInfo" data-tooltip="View details">
+			<img class="pip-item-img" src="{{img}}" alt="" />
+			<span class="pip-item-name">{{name}}</span>
+		</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
+</div>

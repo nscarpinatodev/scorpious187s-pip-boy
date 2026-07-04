@@ -1,0 +1,51 @@
+<div class="standard-form">
+	<p class="hint">
+		Show a view of a world-map scene on the Pip-Boy MAP tab, centred on a party
+		token that all players own. The map is tinted to match the Pip-Boy screen.
+	</p>
+
+	<div class="form-group">
+		<label>Enable World Map</label>
+		<div class="form-fields">
+			<input type="checkbox" name="enabled" {{#if enabled}}checked{{/if}} />
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label>World Map Scene</label>
+		<div class="form-fields">
+			<select name="sceneId">
+				<option value="">&mdash; None &mdash;</option>
+				{{#each scenes}}
+				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">The scene whose background is shown as the map.</p>
+	</div>
+
+	<div class="form-group">
+		<label>Party Token (Actor)</label>
+		<div class="form-fields">
+			<select name="actorId">
+				<option value="">&mdash; None &mdash;</option>
+				{{#each actors}}
+				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">The map centres on this actor's token in the scene above.</p>
+	</div>
+
+	<div class="form-group">
+		<label>Zoom</label>
+		<div class="form-fields">
+			<input type="number" name="zoom" value="{{zoom}}" step="0.25" min="1" max="6" />
+		</div>
+		<p class="hint">Higher values zoom in closer around the party token.</p>
+	</div>
+
+	<footer class="form-footer">
+		<button type="submit"><i class="fas fa-floppy-disk"></i> Save Changes</button>
+	</footer>
+</div>

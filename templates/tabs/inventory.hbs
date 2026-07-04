@@ -1,0 +1,52 @@
+{{!-- INV: embedded items grouped by kind --}}
+<div class="pip-inv">
+	<div class="pip-inv-summary">
+		<span>WEIGHT</span><span>{{inventory.carriedWeight}} / {{inventory.maxWeight}}</span>
+	</div>
+
+	{{#each inventory.sections}}
+	<div class="pip-inv-section">
+		<h3 class="pip-section-title"><i class="fas {{icon}}"></i> {{label}} <span class="pip-count">{{count}}</span></h3>
+		<ul class="pip-item-list">
+			{{#each items}}
+			<li class="pip-item{{#if equipped}} equipped{{/if}}" data-item-id="{{id}}">
+				<img class="pip-item-img" src="{{img}}" alt="" data-action="showInfo" data-tooltip="View details" />
+				<span class="pip-item-name" data-action="showInfo" data-tooltip="View details">{{name}}</span>
+				{{#if subtitle}}<span class="pip-item-sub">{{subtitle}}</span>{{/if}}
+				{{#if quantity}}<span class="pip-item-qty">×{{quantity}}</span>{{/if}}
+				{{#if weight}}<span class="pip-item-wt">{{weight}}</span>{{/if}}
+				<span class="pip-item-actions">
+					{{#if equippable}}
+					<button type="button" class="pip-icon-btn" data-action="toggleEquip"
+						data-tooltip="{{#if equipped}}Unequip{{else}}Equip{{/if}}">
+						<i class="fas {{#if equipped}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
+					</button>
+					{{/if}}
+					{{#if isWeapon}}
+					<button type="button" class="pip-icon-btn pip-attack-btn" data-action="attackWeapon"
+						data-tooltip="Roll attack">
+						<i class="fas fa-crosshairs"></i>
+					</button>
+					<button type="button" class="pip-icon-btn pip-damage-btn" data-action="damageWeapon"
+						data-tooltip="Roll damage">
+						<i class="fas fa-burst"></i>
+					</button>
+					{{else if isConsumable}}
+					<button type="button" class="pip-icon-btn pip-use-btn" data-action="useConsumable"
+						data-tooltip="Use">
+						<i class="fas fa-mortar-pestle"></i>
+					</button>
+					{{else}}
+					<button type="button" class="pip-icon-btn" data-action="rollItem" data-tooltip="Send to chat">
+						<i class="fas fa-comment"></i>
+					</button>
+					{{/if}}
+				</span>
+			</li>
+			{{/each}}
+		</ul>
+	</div>
+	{{else}}
+	<p class="pip-empty">No items carried.</p>
+	{{/each}}
+</div>

@@ -1,0 +1,48 @@
+{{!-- Scorpious187's Pip Boy — main shell. The casing PNG is the backdrop; the
+      CRT screen content is inset over the transparent cutout. --}}
+<div class="pipboy-frame pip-tint-{{frameColor}}" style="--pip-frame-src:url('{{frameSrc}}')">
+	<div class="pipboy-screen">
+		<div class="pipboy-glass"></div>
+		<div class="pipboy-scanlines"></div>
+
+		<div class="pipboy-content">
+			<header class="pip-header">
+				<span class="pip-name">{{actor.name}}</span>
+				<span class="pip-level">LVL {{data.level}}</span>
+			</header>
+
+			<nav class="pip-tabs">
+				{{#each tabs}}
+				<button type="button" class="pip-tab{{#if active}} active{{/if}}"
+					data-action="switchTab" data-tab="{{id}}">
+					<i class="fas {{icon}}"></i><span>{{label}}</span>
+				</button>
+				{{/each}}
+			</nav>
+
+			<div class="pip-panes">
+				<section class="pip-pane" data-tab-content="status">
+					{{> "modules/scorpious187s-pip-boy/templates/tabs/status.hbs"}}
+				</section>
+				<section class="pip-pane" data-tab-content="inventory">
+					{{> "modules/scorpious187s-pip-boy/templates/tabs/inventory.hbs"}}
+				</section>
+				<section class="pip-pane" data-tab-content="data">
+					{{> "modules/scorpious187s-pip-boy/templates/tabs/data.hbs"}}
+				</section>
+				<section class="pip-pane" data-tab-content="map">
+					{{> "modules/scorpious187s-pip-boy/templates/tabs/map.hbs"}}
+				</section>
+			</div>
+		</div>
+	</div>
+
+	{{!-- Lower readout: item / skill descriptions, over the frame's lower panel --}}
+	<div class="pipboy-lower" data-empty="true">
+		<div class="pip-info-head">
+			<img class="pip-info-img" src="" alt="" hidden />
+			<span class="pip-info-title"></span>
+		</div>
+		<div class="pip-info-body">Select an item to view details.</div>
+	</div>
+</div>

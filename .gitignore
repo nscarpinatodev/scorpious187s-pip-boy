@@ -1,0 +1,16 @@
+# Build artifacts
+module.zip
+dist/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

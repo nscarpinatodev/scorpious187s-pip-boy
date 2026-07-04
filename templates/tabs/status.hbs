@@ -1,0 +1,68 @@
+{{!-- STATUS: HP, condition (limbs), SPECIAL, rads & needs --}}
+<div class="pip-status">
+
+	<div class="pip-hp-block">
+		<div class="pip-hp-label">
+			<span>HP</span>
+			<span class="pip-hp-controls">
+				<button type="button" class="pip-step-btn" data-action="adjustHp" data-delta="-1" data-tooltip="Damage 1">&minus;</button>
+				<span class="pip-hp-num">{{status.health.value}} / {{status.health.max}}</span>
+				<button type="button" class="pip-step-btn" data-action="adjustHp" data-delta="1" data-tooltip="Heal 1">+</button>
+			</span>
+		</div>
+		<div class="pip-bar">
+			<div class="pip-bar-fill" style="width:{{status.health.pct}}%"></div>
+		</div>
+	</div>
+
+	<div class="pip-vitals">
+		<div class="pip-vital"><span class="pip-vital-val">{{status.defense}}</span><span class="pip-vital-key">DEF</span></div>
+		<div class="pip-vital"><span class="pip-vital-val">{{status.initiative}}</span><span class="pip-vital-key">INIT</span></div>
+		<div class="pip-vital"><span class="pip-vital-val">{{status.radiation}}</span><span class="pip-vital-key">RADS</span></div>
+		<div class="pip-vital"><span class="pip-vital-val">{{status.luckPoints}}</span><span class="pip-vital-key">LUCK</span></div>
+		<div class="pip-vital"><span class="pip-vital-val">{{status.caps}}</span><span class="pip-vital-key">CAPS</span></div>
+		<div class="pip-vital{{#if status.carryWeight.level}} pip-encumbered{{/if}}" data-tooltip="Carried / capacity"><span class="pip-vital-val">{{status.carryWeight.current}}/{{status.carryWeight.max}}</span><span class="pip-vital-key">WT</span></div>
+	</div>
+
+	<h3 class="pip-section-title">CONDITION</h3>
+	<div class="pip-condition">
+		<div class="pip-body pipboy-status-screen {{status.bodyType}}">
+			{{#each status.bodyFigure}}
+			<div class="pip-body-part pip-limb-{{status}}" data-limb="{{key}}"
+				style="--limb-src:url('{{src}}')"></div>
+			{{/each}}
+		</div>
+		<div class="pip-limbs">
+			{{#each status.limbs}}
+			<div class="pip-limb pip-limb-{{status}}" data-limb="{{key}}">
+				<span class="pip-limb-name">{{label}}</span>
+				<span class="pip-limb-status">{{status}}</span>
+				<span class="pip-injuries" data-tooltip="Click to cycle: none → wounded → crippled">
+					{{#each injuries}}
+					<button type="button" class="pip-injury-pip pip-injury-{{value}}"
+						data-action="cycleInjury" data-limb="{{../key}}" data-index="{{index}}"></button>
+					{{/each}}
+				</span>
+			</div>
+			{{/each}}
+		</div>
+	</div>
+
+	<h3 class="pip-section-title">S.P.E.C.I.A.L.</h3>
+	<div class="pip-special">
+		{{#each status.special}}
+		<div class="pip-attr" data-tooltip="{{label}}">
+			<span class="pip-attr-letter">{{letter}}</span>
+			<span class="pip-attr-val">{{value}}</span>
+		</div>
+		{{/each}}
+	</div>
+
+	<h3 class="pip-section-title">NEEDS</h3>
+	<div class="pip-needs">
+		{{#each status.conditions}}
+		<div class="pip-need"><span>{{label}}</span><span class="pip-need-val">{{value}}</span></div>
+		{{/each}}
+	</div>
+
+</div>

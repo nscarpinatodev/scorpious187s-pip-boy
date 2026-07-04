@@ -1,0 +1,492 @@
+/* =========================================================================
+   Scorpious187's Pip Boy
+   CRT screen content is inset over the transparent cutout of the casing PNG.
+   Screen cutout (744x1039 frame): left 7.93% top 12.80% w 84.14% h 41.00%.
+   ========================================================================= */
+
+/* --- strip the default AppV2 window chrome so ONLY the casing shows --- */
+.application.fallout-pipboy {
+	/* Neutralise the themed window-background variable and force transparency so
+	   only the casing PNG is visible (canvas/scene shows through the rest). */
+	--color-window-background: transparent;
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	backdrop-filter: none !important;
+	min-width: 0;
+	min-height: 0;
+}
+.application.fallout-pipboy .window-content {
+	padding: 0;
+	background: transparent !important;
+	border: none;
+	box-shadow: none;
+	overflow: visible;
+	color: var(--pip);
+}
+/* Header floats invisibly over the casing so the window is still drag/closeable
+   but no chrome box shows around the transparent parts of the frame art. */
+.application.fallout-pipboy .window-header {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	position: absolute;
+	inset: 0 0 auto 0;
+	z-index: 10;
+}
+.application.fallout-pipboy .window-header .window-title { visibility: hidden; }
+.application.fallout-pipboy .window-header button {
+	color: var(--pip, #35ff7b);
+	text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+}
+
+/* --- casing --------------------------------------------------------------- */
+.pipboy-frame {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 744 / 1039;
+	background-image: var(--pip-frame-src);
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+
+	/* default (green) phosphor; overridden per .pip-tint-* below */
+	--pip: #35ff7b;
+	--pip-dim: #1f9d4b;
+	--pip-bg: #04140a;
+	--pip-glow: rgba(53, 255, 123, 0.55);
+}
+
+/* The casing is painted a second time ON TOP of the screen so the opaque bezel
+   clips the display to the exact shape of the interior opening (rounded corners
+   included). The transparent screen cutout lets the CRT show through. */
+.pipboy-frame::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--pip-frame-src) center / contain no-repeat;
+	pointer-events: none;
+	z-index: 5;
+}
+
+/* --- lower readout (item / skill descriptions) ---------------------------- */
+/* Sits ABOVE the casing overlay (z-index 5) so it shows on the lower panel. */
+.pipboy-lower {
+	position: absolute;
+	left: 9%;
+	top: 64%;
+	width: 82%;
+	height: 25%;
+	z-index: 6;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px 10px;
+	/* dark phosphor-tinted panel (slightly translucent) so descriptions read clearly */
+	background: rgba(4, 20, 11, 0.9);
+	border: 1px solid var(--pip-dim);
+	border-radius: 6px;
+	color: var(--pip);
+	font-family: "Consolas", "Lucida Console", monospace;
+	font-size: 11px;
+	text-shadow: 0 0 3px var(--pip-glow);
+	box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+}
+.pipboy-lower[data-empty="true"] .pip-info-body { opacity: 0.5; font-style: italic; }
+.pip-info-head { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--pip-dim); padding-bottom: 3px; }
+.pip-info-img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 0 2px var(--pip-glow)); }
+.pip-info-title { font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.pip-info-body { flex: 1; overflow-y: auto; line-height: 1.4; padding-right: 4px; }
+.pip-info-body::-webkit-scrollbar { width: 6px; }
+.pip-info-body::-webkit-scrollbar-thumb { background: var(--pip-dim); }
+.pip-info-body p { margin: 0 0 6px; }
+
+/* --- screen --------------------------------------------------------------- */
+/* Sized slightly larger than the measured cutout so it underlaps the bezel;
+   the ::after overlay above hides the overshoot. */
+.pipboy-screen {
+	position: absolute;
+	left: 6.8%;
+	top: 11.7%;
+	width: 86.4%;
+	height: 43.2%;
+	overflow: hidden;
+	border-radius: 10px / 14px;
+	background:
+		radial-gradient(ellipse at center, color-mix(in srgb, var(--pip-bg) 82%, #000) 0%, #000 130%);
+	color: var(--pip);
+	font-family: "Consolas", "Lucida Console", monospace;
+	text-shadow: 0 0 4px var(--pip-glow);
+}
+
+/* CRT scanlines + phosphor flicker */
+.pipboy-scanlines {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: repeating-linear-gradient(
+		to bottom,
+		rgba(0, 0, 0, 0) 0px,
+		rgba(0, 0, 0, 0) 2px,
+		rgba(0, 0, 0, 0.28) 3px,
+		rgba(0, 0, 0, 0.28) 4px
+	);
+	mix-blend-mode: multiply;
+	z-index: 3;
+	animation: pip-flicker 6s infinite steps(60);
+}
+@keyframes pip-flicker {
+	0%, 97%, 100% { opacity: 1; }
+	98% { opacity: 0.82; }
+	99% { opacity: 0.94; }
+}
+
+/* curved glass vignette */
+.pipboy-glass {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 2;
+	box-shadow:
+		inset 0 0 24px 6px rgba(0, 0, 0, 0.7),
+		inset 0 0 90px 10px color-mix(in srgb, var(--pip) 12%, transparent);
+	background: radial-gradient(ellipse at 50% 20%, color-mix(in srgb, var(--pip) 8%, transparent), transparent 60%);
+}
+
+/* --- screen content ------------------------------------------------------- */
+.pipboy-content {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	/* Generous inset keeps content clear of the rounded corners / bezel overlay. */
+	padding: 16px 26px 18px;
+	font-size: 13px;
+	line-height: 1.35;
+}
+
+.pip-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	border-bottom: 1px solid var(--pip-dim);
+	padding-bottom: 2px;
+}
+.pip-name { font-weight: 700; }
+.pip-level { opacity: 0.85; font-size: 11px; }
+
+/* --- tab bar -------------------------------------------------------------- */
+.pip-tabs {
+	display: flex;
+	gap: 4px;
+	margin: 4px 0;
+}
+.pip-tab {
+	flex: 1;
+	background: transparent;
+	border: 1px solid var(--pip-dim);
+	color: var(--pip-dim);
+	border-radius: 0;
+	padding: 2px 0;
+	font-family: inherit;
+	font-size: 11px;
+	letter-spacing: 1px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	line-height: 1;
+	text-shadow: none;
+	transition: none;
+}
+.pip-tab i { font-size: 11px; }
+.pip-tab:hover { color: var(--pip); border-color: var(--pip); box-shadow: none; }
+.pip-tab.active {
+	background: var(--pip);
+	color: var(--pip-bg);
+	font-weight: 700;
+	box-shadow: 0 0 8px var(--pip-glow);
+}
+
+/* --- panes ---------------------------------------------------------------- */
+.pip-panes {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+.pip-pane {
+	position: absolute;
+	inset: 0;
+	overflow-y: auto;
+	padding-right: 4px;
+	display: none;
+}
+.pip-pane.active { display: block; }
+
+.pip-pane::-webkit-scrollbar { width: 6px; }
+.pip-pane::-webkit-scrollbar-thumb { background: var(--pip-dim); border-radius: 0; }
+.pip-pane::-webkit-scrollbar-track { background: transparent; }
+
+.pip-section-title {
+	font-size: 11px;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	margin: 8px 0 4px;
+	padding-bottom: 1px;
+	border-bottom: 1px solid var(--pip-dim);
+	color: var(--pip);
+	font-weight: 700;
+}
+.pip-section-title .pip-count { float: right; opacity: 0.7; font-weight: 400; }
+
+/* --- STATUS --------------------------------------------------------------- */
+.pip-hp-label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; letter-spacing: 1px; }
+.pip-hp-controls { display: inline-flex; align-items: center; gap: 6px; }
+.pip-hp-num { font-variant-numeric: tabular-nums; min-width: 54px; text-align: center; }
+.pip-step-btn {
+	width: 18px; height: 16px; line-height: 1; padding: 0;
+	background: transparent; border: 1px solid var(--pip-dim); color: var(--pip);
+	font-family: inherit; font-weight: 700; cursor: pointer; border-radius: 0;
+}
+.pip-step-btn:hover { border-color: var(--pip); box-shadow: 0 0 6px var(--pip-glow); }
+
+.pip-injuries { display: inline-flex; gap: 2px; margin-top: 2px; }
+.pip-injury-pip {
+	width: 9px; height: 9px; padding: 0; cursor: pointer; border-radius: 50%;
+	border: 1px solid var(--pip-dim); background: transparent;
+}
+.pip-injury-pip.pip-injury-1 { background: #ffd24d; border-color: #ffd24d; }
+.pip-injury-pip.pip-injury-2 { background: #ff5a4d; border-color: #ff5a4d; }
+.pip-injury-pip:hover { box-shadow: 0 0 5px var(--pip-glow); }
+
+.pip-bar {
+	height: 12px;
+	border: 1px solid var(--pip-dim);
+	background: rgba(0, 0, 0, 0.4);
+	padding: 1px;
+}
+.pip-bar-fill {
+	height: 100%;
+	background: var(--pip);
+	box-shadow: 0 0 6px var(--pip-glow);
+	transition: width 0.3s ease;
+}
+
+.pip-vitals {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 3px;
+	margin-top: 6px;
+	text-align: center;
+}
+.pip-vital { border: 1px solid var(--pip-dim); padding: 2px 0; }
+.pip-vital-val { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pip-vital-key { display: block; font-size: 9px; letter-spacing: 1px; opacity: 0.8; }
+.pip-vital.pip-encumbered { border-color: #ff5a4d; color: #ff8a80; }
+
+/* Vault-Boy-style condition figure: masked limb layers coloured by status. */
+.pip-condition { display: grid; grid-template-columns: 1fr 1.1fr; gap: 8px; align-items: center; }
+.pip-body {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	background: transparent !important; /* override system .pipboy-status-screen bg */
+}
+.pip-body-part {
+	position: absolute;
+	inset: 0;
+	background-color: var(--pip);
+	-webkit-mask: var(--limb-src) center / contain no-repeat;
+	mask: var(--limb-src) center / contain no-repeat;
+	filter: drop-shadow(0 0 3px var(--pip-glow));
+}
+.pip-body-part.pip-limb-wounded { background-color: #ffd24d; }
+.pip-body-part.pip-limb-crippled { background-color: #ff5a4d; }
+
+.pip-limbs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; align-content: center; }
+.pip-limb {
+	border: 1px solid var(--pip-dim);
+	padding: 3px 4px;
+	display: flex;
+	flex-direction: column;
+	font-size: 10px;
+}
+.pip-limb-name { font-weight: 700; letter-spacing: 1px; }
+.pip-limb-status { text-transform: uppercase; opacity: 0.75; font-size: 9px; }
+.pip-limb-injury { align-self: flex-end; font-size: 9px; }
+.pip-limb.pip-limb-crippled, .pip-limb.pip-limb-severed {
+	border-color: #ff5a4d; color: #ff8a80;
+}
+
+.pip-special { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.pip-attr { border: 1px solid var(--pip-dim); padding: 3px 0; }
+.pip-attr-letter { display: block; font-size: 10px; opacity: 0.8; }
+.pip-attr-val { display: block; font-size: 17px; font-weight: 700; }
+
+.pip-needs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 10px; font-size: 11px; }
+.pip-need { display: flex; justify-content: space-between; border-bottom: 1px dotted var(--pip-dim); }
+.pip-need-val { font-weight: 700; }
+
+/* --- INVENTORY / DATA lists ---------------------------------------------- */
+.pip-inv-summary, .pip-origin {
+	display: flex;
+	justify-content: space-between;
+	font-size: 11px;
+	letter-spacing: 1px;
+	opacity: 0.9;
+	border-bottom: 1px solid var(--pip-dim);
+	padding-bottom: 2px;
+}
+.pip-origin { justify-content: flex-start; gap: 6px; border: none; opacity: 0.75; }
+
+.pip-item-list, .pip-skill-list, .pip-perk-list { list-style: none; margin: 0; padding: 0; }
+
+.pip-item {
+	display: grid;
+	grid-template-columns: 18px 1fr auto auto auto auto;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 0;
+	border-bottom: 1px dotted var(--pip-dim);
+}
+.pip-item.equipped { color: var(--pip); font-weight: 700; }
+.pip-item-img { width: 18px; height: 18px; object-fit: contain; border: none; filter: drop-shadow(0 0 1px var(--pip-glow)); opacity: 0.9; }
+.pip-item-name { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pip-item-name:hover { text-decoration: underline; }
+.pip-item-sub { font-size: 9px; opacity: 0.7; }
+.pip-item-qty, .pip-item-wt { font-size: 10px; opacity: 0.85; }
+.pip-item-actions { display: flex; gap: 4px; }
+.pip-icon-btn {
+	background: transparent; border: none; color: var(--pip-dim);
+	cursor: pointer; padding: 0; width: auto; line-height: 1;
+}
+.pip-icon-btn:hover { color: var(--pip); box-shadow: none; }
+.pip-attack-btn { color: var(--pip); }
+.pip-attack-btn:hover { text-shadow: 0 0 6px var(--pip-glow); }
+.pip-damage-btn:hover { text-shadow: 0 0 6px var(--pip-glow); }
+.pip-use-btn { color: var(--pip); }
+.pip-use-btn:hover { text-shadow: 0 0 6px var(--pip-glow); }
+
+.pip-skill { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 1px 0; border-bottom: 1px dotted var(--pip-dim); font-size: 12px; }
+.pip-skill-name { cursor: pointer; }
+.pip-skill-name:hover { text-decoration: underline; }
+.pip-skill-attr { font-size: 9px; opacity: 0.7; }
+.pip-skill-rank { font-weight: 700; min-width: 14px; text-align: right; }
+.pip-skill.tagged .pip-skill-rank { color: var(--pip); }
+.pip-skill-attrs { grid-column: 1 / -1; display: none; gap: 3px; padding: 3px 0 4px; }
+.pip-skill.show-attrs .pip-skill-attrs { display: flex; }
+.pip-attr-pick {
+	flex: 1; padding: 2px 0; background: transparent; border: 1px solid var(--pip-dim);
+	color: var(--pip); font-family: inherit; font-size: 10px; font-weight: 700; cursor: pointer;
+}
+.pip-attr-pick:hover { border-color: var(--pip); box-shadow: 0 0 6px var(--pip-glow); }
+.pip-tag { font-size: 9px; }
+
+.pip-perk-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; }
+.pip-perk { display: flex; align-items: center; gap: 6px; border: 1px solid var(--pip-dim); padding: 2px 4px; cursor: pointer; font-size: 11px; }
+.pip-perk:hover { border-color: var(--pip); }
+.pip-perk .pip-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pip-perk-rank { margin-left: auto; padding-left: 6px; font-size: 10px; opacity: 0.85; white-space: nowrap; }
+
+.pip-empty { text-align: center; opacity: 0.6; padding: 12px; letter-spacing: 2px; }
+
+/* --- MAP placeholder ------------------------------------------------------ */
+.pip-map { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 4px; }
+.pip-map-icon { font-size: 42px; opacity: 0.4; }
+.pip-map-sub { font-size: 11px; opacity: 0.6; }
+
+/* world / local map scene view */
+.pip-map-wrap { display: flex; flex-direction: column; height: 100%; gap: 4px; }
+.pip-map-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.pip-map-modes { display: flex; gap: 3px; }
+.pip-map-mode {
+	background: transparent; border: 1px solid var(--pip-dim); color: var(--pip-dim);
+	font-family: inherit; font-size: 10px; letter-spacing: 1px; padding: 2px 8px; cursor: pointer;
+}
+.pip-map-mode:hover { color: var(--pip); border-color: var(--pip); }
+.pip-map-mode.active { background: var(--pip); color: var(--pip-bg); font-weight: 700; }
+.pip-map-zoom { display: flex; gap: 4px; }
+.pip-map-zoom .pip-icon-btn { border: 1px solid var(--pip-dim); width: 20px; height: 18px; }
+.pip-map-zoom .pip-icon-btn:hover { border-color: var(--pip); }
+.pip-map-viewport {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	border: 1px solid var(--pip-dim);
+	background: #000;
+	cursor: grab;
+	touch-action: none;
+}
+.pip-map-viewport.dragging { cursor: grabbing; }
+.pip-map-scene {
+	position: absolute;
+	left: 0;
+	top: 0;
+	max-width: none;
+	user-select: none;
+	/* desaturate the scene; the tint layer recolours it to the phosphor hue */
+	filter: grayscale(1) brightness(0.85) contrast(1.15);
+}
+/* fog of war: mask unexplored areas (luminance — explored is bright) */
+.pip-map-scene.has-fog {
+	-webkit-mask-image: var(--fog-src);
+	mask-image: var(--fog-src);
+	-webkit-mask-size: 100% 100%;
+	mask-size: 100% 100%;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	mask-mode: luminance;
+}
+.pip-map-tint {
+	position: absolute;
+	inset: 0;
+	background: var(--pip);
+	mix-blend-mode: multiply;
+	opacity: 0.9;
+	pointer-events: none;
+}
+.pip-map-marker {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 12px;
+	height: 12px;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	background: var(--pip);
+	box-shadow: 0 0 8px 2px var(--pip-glow);
+	border: 1px solid #000;
+	pointer-events: none;
+	animation: pip-ping 1.8s ease-out infinite;
+}
+@keyframes pip-ping {
+	0% { box-shadow: 0 0 0 0 var(--pip-glow); }
+	70% { box-shadow: 0 0 0 10px transparent; }
+	100% { box-shadow: 0 0 0 0 transparent; }
+}
+.pip-map-caption {
+	display: flex; justify-content: space-between; align-items: center;
+	font-size: 10px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.85;
+}
+.pip-map-warn { color: #ffd24d; }
+@media (prefers-reduced-motion: reduce) { .pip-map-marker { animation: none; } }
+
+/* --- token HUD button ----------------------------------------------------- */
+.scorpious187s-pip-boy-hud-button i { pointer-events: none; }
+
+/* =========================================================================
+   Per-frame phosphor tints
+   ========================================================================= */
+.pip-tint-green  { --pip:#35ff7b; --pip-dim:#1f9d4b; --pip-bg:#04140a; --pip-glow:rgba(53,255,123,.55); }
+.pip-tint-blue   { --pip:#43d4ff; --pip-dim:#2a7fa1; --pip-bg:#04121a; --pip-glow:rgba(67,212,255,.55); }
+.pip-tint-bronze { --pip:#ffb454; --pip-dim:#a86f2c; --pip-bg:#170d02; --pip-glow:rgba(255,180,84,.55); }
+.pip-tint-beige  { --pip:#ffd9a0; --pip-dim:#b08f5e; --pip-bg:#150f06; --pip-glow:rgba(255,217,160,.5); }
+.pip-tint-gray   { --pip:#c9d6cd; --pip-dim:#7c877f; --pip-bg:#0c0f0d; --pip-glow:rgba(201,214,205,.5); }
+.pip-tint-purple { --pip:#c58bff; --pip-dim:#7a4fb0; --pip-bg:#0f0618; --pip-glow:rgba(197,139,255,.55); }
+.pip-tint-red    { --pip:#ff5f57; --pip-dim:#a5342f; --pip-bg:#170303; --pip-glow:rgba(255,95,87,.55); }
+.pip-tint-yellow { --pip:#ffe14d; --pip-dim:#a89320; --pip-bg:#151201; --pip-glow:rgba(255,225,77,.5); }

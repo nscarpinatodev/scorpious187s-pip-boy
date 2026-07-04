@@ -1,0 +1,46 @@
+{{!-- MAP: World (GM scene + party token) / Local (active scene + your token, fog) --}}
+{{#if map.available}}
+<div class="pip-map-wrap">
+	<div class="pip-map-toolbar">
+		<div class="pip-map-modes">
+			{{#if map.worldAvailable}}
+			<button type="button" class="pip-map-mode{{#if map.isWorld}} active{{/if}}"
+				data-action="toggleMapMode" data-mode="world">WORLD</button>
+			{{/if}}
+			{{#if map.localAvailable}}
+			<button type="button" class="pip-map-mode{{#if map.isLocal}} active{{/if}}"
+				data-action="toggleMapMode" data-mode="local">LOCAL</button>
+			{{/if}}
+		</div>
+		<div class="pip-map-zoom">
+			<button type="button" class="pip-icon-btn" data-action="zoomMap" data-dir="1" data-tooltip="Zoom in">
+				<i class="fas fa-magnifying-glass-plus"></i>
+			</button>
+			<button type="button" class="pip-icon-btn" data-action="zoomMap" data-dir="-1" data-tooltip="Zoom out">
+				<i class="fas fa-magnifying-glass-minus"></i>
+			</button>
+			<button type="button" class="pip-icon-btn" data-action="recenterMap" data-tooltip="Recentre">
+				<i class="fas fa-crosshairs"></i>
+			</button>
+		</div>
+	</div>
+
+	<div class="pip-map-viewport" data-fx="{{map.view.fx}}" data-fy="{{map.view.fy}}" data-zoom="{{map.view.defaultZoom}}">
+		<img class="pip-map-scene{{#if map.view.fogSrc}} has-fog{{/if}}" src="{{map.view.bgSrc}}" alt=""
+			{{#if map.view.fogSrc}}style="--fog-src:url('{{map.view.fogSrc}}')"{{/if}} draggable="false" />
+		<div class="pip-map-tint"></div>
+		{{#if map.view.hasToken}}<div class="pip-map-marker" data-tooltip="You"></div>{{/if}}
+	</div>
+
+	<div class="pip-map-caption">
+		<span>{{map.view.sceneName}}</span>
+		{{#unless map.view.hasToken}}<span class="pip-map-warn">token not on this scene</span>{{/unless}}
+	</div>
+</div>
+{{else}}
+<div class="pip-map pip-empty">
+	<i class="fas fa-map-location-dot pip-map-icon"></i>
+	<p>MAP</p>
+	<p class="pip-map-sub">{{#if map.isGM}}Enable the World Map in settings, or open a scene{{else}}No map available{{/if}}</p>
+</div>
+{{/if}}

@@ -1,0 +1,6 @@
+{
+	"SCORPIOUS_PIPBOY.Title": "Pip-Boy",
+	"SCORPIOUS_PIPBOY.OpenTooltip": "Open Pip-Boy",
+	"SCORPIOUS_PIPBOY.Settings.FrameColor.Name": "Pip-Boy Frame Colour",
+	"SCORPIOUS_PIPBOY.Settings.FrameColor.Hint": "The casing colour used for the Pip-Boy window. The screen tint follows the frame."
+}

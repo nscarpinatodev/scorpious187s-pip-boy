@@ -1,0 +1,53 @@
+name: Release
+
+# Publish a Foundry-installable release whenever a version tag is pushed, e.g.:
+#   git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Derive version and URLs from the tag
+        id: meta
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "manifest=https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/module.json" >> "$GITHUB_OUTPUT"
+          echo "download=https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/module.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp module.json
+        run: |
+          tmp="$(mktemp)"
+          jq --arg v "${{ steps.meta.outputs.version }}" \
+             --arg m "${{ steps.meta.outputs.manifest }}" \
+             --arg d "${{ steps.meta.outputs.download }}" \
+             '.version = $v | .manifest = $m | .download = $d' module.json > "$tmp"
+          mv "$tmp" module.json
+          echo "----- module.json -----"; cat module.json
+
+      - name: Build module.zip
+        run: |
+          zip -r module.zip \
+            module.json \
+            scripts styles templates lang frames \
+            README.md LICENSE CHANGELOG.md
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: |
+            module.json
+            module.zip
+          generate_release_notes: true
