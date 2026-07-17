@@ -62,6 +62,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			useConsumable: PipBoyApp.#onUseConsumable,
 			rollItem: PipBoyApp.#onRollItem,
 			toggleEquip: PipBoyApp.#onToggleEquip,
+			openSettings: PipBoyApp.#onOpenSettings,
 		},
 	};
 
@@ -135,6 +136,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		context.actor = actor;
 		context.moduleId = MODULE_ID;
 		context.frameColor = game.settings.get(MODULE_ID, "frameColor") ?? "green";
+		context.showScanlines = game.settings.get(MODULE_ID, "scanlines") ?? true;
 		// Resolve to a root-absolute URL so the inline-style url() isn't broken by
 		// Foundry's route prefix / trailing slash (relative url() 404s otherwise).
 		const framePath = `modules/${MODULE_ID}/frames/pipboy-frame-${context.frameColor}.png`;
@@ -221,28 +223,21 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { fx, fy, hasToken } = this.#tokenCenter(scene, token);
 		return {
 			bgSrc: this.#resolveSrc(bg),
-			fogSrc: null,
 			fx, fy, hasToken,
 			sceneName: scene.name,
 			defaultZoom: game.settings.get(MODULE_ID, "worldMapZoom") || 1.5,
 		};
 	}
 
-	/** Local map: the active scene centred on this character's token, fog-masked. */
+	/** Local map: the active scene centred on this character's token. Only the
+	 *  scene background art is shown — no tokens — so nothing hostile leaks. */
 	#localMapData() {
 		const scene = canvas?.scene;
 		const bg = scene?.background?.src ?? scene?.img ?? null;
 		if (!scene || !bg) return null;
 		const { fx, fy, hasToken } = this.#tokenCenter(scene, this.#findMyToken(scene));
-		// Fog of war: the explored texture (best-effort; masks unexplored areas).
-		let fogSrc = null;
-		try {
-			const explored = canvas?.fog?.exploration?.explored;
-			if (explored) fogSrc = explored;
-		} catch (_e) { /* fog unavailable */ }
 		return {
 			bgSrc: this.#resolveSrc(bg),
-			fogSrc,
 			fx, fy, hasToken,
 			sceneName: scene.name,
 			defaultZoom: 2.5,
@@ -576,6 +571,11 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	/* -------------------------------------------- */
 	/*  Actions                                      */
 	/* -------------------------------------------- */
+
+	/** Dial wheel on the casing: open Foundry's settings sheet. */
+	static #onOpenSettings() {
+		game.settings.sheet.render(true);
+	}
 
 	static #onSwitchTab(event, target) {
 		const tab = target.dataset.tab;

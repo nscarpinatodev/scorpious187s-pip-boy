@@ -3,6 +3,23 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] — 2026-07-17
+
+### Added
+
+- **CRT Scanlines setting** — a per-client toggle in Module Settings to hide the
+  scanline overlay (and its flicker) for players who find it hard to read.
+  Defaults to on; takes effect immediately on any open Pip-Boy.
+- **Settings dial shortcut** — the dial wheel on the right edge of the casing is
+  now clickable (with a phosphor hover glow) and opens the Foundry settings sheet.
+
+### Removed
+
+- **Local Map fog-of-war mask** — it didn't reliably reflect explored areas, so
+  the Local Map now shows the full scene background art. Only the background and
+  your own position marker are drawn — enemy tokens were never rendered and still
+  aren't.
+
 ## [0.1.0] — 2026-07-04
 
 Initial release.

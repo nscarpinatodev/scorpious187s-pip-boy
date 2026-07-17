@@ -2,5 +2,7 @@
 	"SCORPIOUS_PIPBOY.Title": "Pip-Boy",
 	"SCORPIOUS_PIPBOY.OpenTooltip": "Open Pip-Boy",
 	"SCORPIOUS_PIPBOY.Settings.FrameColor.Name": "Pip-Boy Frame Colour",
-	"SCORPIOUS_PIPBOY.Settings.FrameColor.Hint": "The casing colour used for the Pip-Boy window. The screen tint follows the frame."
+	"SCORPIOUS_PIPBOY.Settings.FrameColor.Hint": "The casing colour used for the Pip-Boy window. The screen tint follows the frame.",
+	"SCORPIOUS_PIPBOY.Settings.Scanlines.Name": "CRT Scanlines",
+	"SCORPIOUS_PIPBOY.Settings.Scanlines.Hint": "Show the CRT scanline overlay on the Pip-Boy screen. Disable if the scanlines make text hard to read."
 }

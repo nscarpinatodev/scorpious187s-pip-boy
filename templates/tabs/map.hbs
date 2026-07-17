@@ -1,4 +1,4 @@
-{{!-- MAP: World (GM scene + party token) / Local (active scene + your token, fog) --}}
+{{!-- MAP: World (GM scene + party token) / Local (active scene + your token) --}}
 {{#if map.available}}
 <div class="pip-map-wrap">
 	<div class="pip-map-toolbar">
@@ -26,8 +26,7 @@
 	</div>
 
 	<div class="pip-map-viewport" data-fx="{{map.view.fx}}" data-fy="{{map.view.fy}}" data-zoom="{{map.view.defaultZoom}}">
-		<img class="pip-map-scene{{#if map.view.fogSrc}} has-fog{{/if}}" src="{{map.view.bgSrc}}" alt=""
-			{{#if map.view.fogSrc}}style="--fog-src:url('{{map.view.fogSrc}}')"{{/if}} draggable="false" />
+		<img class="pip-map-scene" src="{{map.view.bgSrc}}" alt="" draggable="false" />
 		<div class="pip-map-tint"></div>
 		{{#if map.view.hasToken}}<div class="pip-map-marker" data-tooltip="You"></div>{{/if}}
 	</div>

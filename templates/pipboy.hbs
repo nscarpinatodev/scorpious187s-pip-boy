@@ -3,7 +3,7 @@
 <div class="pipboy-frame pip-tint-{{frameColor}}" style="--pip-frame-src:url('{{frameSrc}}')">
 	<div class="pipboy-screen">
 		<div class="pipboy-glass"></div>
-		<div class="pipboy-scanlines"></div>
+		{{#if showScanlines}}<div class="pipboy-scanlines"></div>{{/if}}
 
 		<div class="pipboy-content">
 			<header class="pip-header">
@@ -36,6 +36,10 @@
 			</div>
 		</div>
 	</div>
+
+	{{!-- Invisible hotspot over the casing's dial wheel: opens Module Settings --}}
+	<button type="button" class="pipboy-dial-settings" data-action="openSettings"
+		data-tooltip="Settings" aria-label="Settings"></button>
 
 	{{!-- Lower readout: item / skill descriptions, over the frame's lower panel --}}
 	<div class="pipboy-lower" data-empty="true">

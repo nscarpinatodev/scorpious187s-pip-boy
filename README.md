@@ -71,8 +71,9 @@ Toggle between two modes (each appears when available), with **wheel-zoom**,
 **drag-pan**, and a **recentre** button:
 - **World Map** — a GM-configured scene centred on a shared **party token**, tinted
   to the Pip-Boy screen colour. Re-centres live as the party token moves.
-- **Local Map** — the **active scene** centred on **your** character's token,
-  **fog-of-war masked** so unexplored areas stay hidden. Re-centres as you move.
+- **Local Map** — the **active scene** centred on **your** character's token.
+  Shows only the scene's background art (no tokens, so no enemy positions leak).
+  Re-centres as you move.
 
 ### Lower readout
 Clicking an item, perk, or trait (or rolling a skill) shows its **description** in
@@ -82,6 +83,8 @@ switch tabs or select something new.
 ### Presentation
 - **8 frame colours** with matching CRT phosphor tint (per-client setting).
 - CRT scanlines, glow, and a transparent window background so only the casing shows.
+  Scanlines can be turned off per-client in Module Settings for readability.
+- The **dial wheel** on the right edge of the casing opens the settings sheet.
 - **Live updates** from the actor, its items, and token movement.
 - **Per-tab scroll positions are preserved** across re-renders.
 
@@ -127,7 +130,7 @@ git push origin v0.1.0
 
 Released under the [MIT License](LICENSE).
 
-The Vault-Boy-style limb figure and the fog-of-war / roll dialogs are provided at
+The Vault-Boy-style limb figure and the roll dialogs are provided at
 runtime by the **fallout** system (Fallout: The Roleplaying Game by Muttley &
 contributors); no system assets are bundled in this module. "Fallout" and
 "Pip-Boy" are trademarks of Bethesda Softworks; this is an unofficial, non-

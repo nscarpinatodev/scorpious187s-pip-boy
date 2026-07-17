@@ -36,6 +36,20 @@ Hooks.once("init", async () => {
 		},
 	});
 
+	game.settings.register(MODULE_ID, "scanlines", {
+		name: "CRT Scanlines",
+		hint: "Show the CRT scanline overlay on the Pip-Boy screen. Disable if the scanlines make text hard to read.",
+		scope: "client",
+		config: true,
+		type: Boolean,
+		default: true,
+		onChange: () => {
+			for (const app of foundry.applications.instances.values()) {
+				if (app instanceof PipBoyApp) app.render();
+			}
+		},
+	});
+
 	// --- World Map settings (GM) -----------------------------------------
 	game.settings.register(MODULE_ID, "worldMapEnabled", {
 		scope: "world", config: false, type: Boolean, default: false,
