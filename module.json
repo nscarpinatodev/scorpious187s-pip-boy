@@ -2,7 +2,7 @@
 	"id": "scorpious187s-pip-boy",
 	"title": "Scorpious187's Pip Boy",
 	"description": "A Pip-Boy interface for the Fallout: The Roleplaying Game system. Opens from the Token HUD and shows HP / limbs / SPECIAL, inventory, and character data across tabs, styled after the in-game Pip-Boy from Fallout 3 / 4 / New Vegas.",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"compatibility": {
 		"minimum": "13",
 		"verified": "14"
@@ -41,5 +41,5 @@
 	"bugs": "https://github.com/nscarpinatodev/scorpious187s-pip-boy/issues",
 	"url": "https://github.com/nscarpinatodev/scorpious187s-pip-boy",
 	"manifest": "https://github.com/nscarpinatodev/scorpious187s-pip-boy/releases/latest/download/module.json",
-	"download": "https://github.com/nscarpinatodev/scorpious187s-pip-boy/releases/download/v0.2.0/module.zip"
+	"download": "https://github.com/nscarpinatodev/scorpious187s-pip-boy/releases/download/v0.2.1/module.zip"
 }

@@ -3,6 +3,14 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] — 2026-07-17
+
+### Fixed
+
+- **Settings dial** — the dial now opens the settings sheet directly on this
+  module's settings tab instead of landing on the top of the Foundry settings
+  list.
+
 ## [0.2.0] — 2026-07-17
 
 ### Added

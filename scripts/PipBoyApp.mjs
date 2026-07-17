@@ -572,9 +572,20 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	/*  Actions                                      */
 	/* -------------------------------------------- */
 
-	/** Dial wheel on the casing: open Foundry's settings sheet. */
-	static #onOpenSettings() {
-		game.settings.sheet.render(true);
+	/** Dial wheel on the casing: open the settings sheet on this module's tab. */
+	static async #onOpenSettings() {
+		const sheet = game.settings.sheet;
+		await sheet.render({ force: true });
+		// v13+ SettingsConfig is a CategoryBrowser whose sidebar tabs (group
+		// "categories") are keyed by package namespace; fall back to clicking the
+		// sidebar entry if the tab API doesn't take.
+		try {
+			sheet.changeTab(MODULE_ID, "categories");
+		} catch (_e) {
+			sheet.element
+				?.querySelector(`[data-tab="${MODULE_ID}"], [data-category="${MODULE_ID}"]`)
+				?.click();
+		}
 	}
 
 	static #onSwitchTab(event, target) {
