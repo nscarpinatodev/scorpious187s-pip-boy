@@ -3,6 +3,28 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-07-31
+
+### Added
+
+- **NEEDS selectors** — Hunger, Thirst, and Sleep on the STATUS tab are now
+  dropdowns (using the system's own condition levels) that write straight back
+  to the character.
+- **POWER ARMOR section** — equipped, powered power-armor pieces show per-location
+  health with a bar and −/+ damage/repair buttons, mirroring the character
+  sheet's Power Armor Health monitor.
+- **RESISTANCES section** — per-limb Physical / Energy / Radiation / Poison
+  damage resistances (armour bonuses included, as derived by the system).
+- **EFFECTS on the DATA tab** — active effects from the character and its items,
+  grouped like the sheet: temporary (with remaining duration), passive, and
+  inactive (dimmed).
+
+- **Tile visibility on the map** — a "Show on Pip-Boy map" checkbox in the Tile
+  configuration (same mechanism as Scorpious187's In-Game Map). Tagged tiles are
+  drawn on the MAP tab in scene coordinates — panning, zooming, and taking the
+  phosphor tint along with the scene image — and the map refreshes live as tiles
+  change. Hidden tiles stay hidden.
+
 ## [0.2.1] — 2026-07-17
 
 ### Fixed

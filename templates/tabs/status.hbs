@@ -48,6 +48,38 @@
 		</div>
 	</div>
 
+	{{#if status.powerArmor.length}}
+	<h3 class="pip-section-title">POWER ARMOR</h3>
+	<div class="pip-pa">
+		{{#each status.powerArmor}}
+		<div class="pip-pa-row" data-tooltip="{{name}}">
+			<span class="pip-pa-loc">{{label}}</span>
+			<div class="pip-bar pip-pa-bar"><div class="pip-bar-fill" style="width:{{pct}}%"></div></div>
+			<span class="pip-hp-controls">
+				<button type="button" class="pip-step-btn" data-action="adjustPaHealth"
+					data-item-id="{{itemId}}" data-delta="-1" data-tooltip="Damage 1">&minus;</button>
+				<span class="pip-pa-num">{{value}} / {{max}}</span>
+				<button type="button" class="pip-step-btn" data-action="adjustPaHealth"
+					data-item-id="{{itemId}}" data-delta="1" data-tooltip="Repair 1">+</button>
+			</span>
+		</div>
+		{{/each}}
+	</div>
+	{{/if}}
+
+	<h3 class="pip-section-title">RESISTANCES</h3>
+	<div class="pip-resist">
+		<div class="pip-resist-row pip-resist-head">
+			<span></span><span data-tooltip="Physical">PHYS</span><span data-tooltip="Energy">EN</span><span data-tooltip="Radiation">RAD</span><span data-tooltip="Poison">PSN</span>
+		</div>
+		{{#each status.resistances}}
+		<div class="pip-resist-row">
+			<span class="pip-resist-loc">{{label}}</span>
+			<span>{{physical}}</span><span>{{energy}}</span><span>{{radiation}}</span><span>{{poison}}</span>
+		</div>
+		{{/each}}
+	</div>
+
 	<h3 class="pip-section-title">S.P.E.C.I.A.L.</h3>
 	<div class="pip-special">
 		{{#each status.special}}
@@ -61,7 +93,18 @@
 	<h3 class="pip-section-title">NEEDS</h3>
 	<div class="pip-needs">
 		{{#each status.conditions}}
-		<div class="pip-need"><span>{{label}}</span><span class="pip-need-val">{{value}}</span></div>
+		<div class="pip-need">
+			<span>{{label}}</span>
+			{{#if options}}
+			<select class="pip-need-select" data-key="{{key}}">
+				{{#each options}}
+				<option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+			{{else}}
+			<span class="pip-need-val">{{value}}</span>
+			{{/if}}
+		</div>
 		{{/each}}
 	</div>
 

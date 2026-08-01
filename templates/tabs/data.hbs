@@ -53,4 +53,18 @@
 	</ul>
 	{{/if}}
 
+	{{#if data.effects.length}}
+	<h3 class="pip-section-title"><i class="fas fa-bolt"></i> EFFECTS</h3>
+	<ul class="pip-effect-list">
+		{{#each data.effects}}
+		<li class="pip-effect pip-effect-{{state}}">
+			<img class="pip-item-img" src="{{img}}" alt="" />
+			<span class="pip-item-name">{{name}}</span>
+			{{#if duration}}<span class="pip-effect-duration">{{duration}}</span>{{/if}}
+			{{#if showState}}<span class="pip-effect-state">{{state}}</span>{{/if}}
+		</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
 </div>

@@ -26,7 +26,15 @@
 	</div>
 
 	<div class="pip-map-viewport" data-fx="{{map.view.fx}}" data-fy="{{map.view.fy}}" data-zoom="{{map.view.defaultZoom}}">
-		<img class="pip-map-scene" src="{{map.view.bgSrc}}" alt="" draggable="false" />
+		{{!-- The canvas pans/zooms as one unit so GM-tagged tiles stay glued
+		      to their spot on the scene. --}}
+		<div class="pip-map-canvas">
+			<img class="pip-map-scene" src="{{map.view.bgSrc}}" alt="" draggable="false" />
+			{{#each map.view.tiles}}
+			<img class="pip-map-tile" src="{{src}}" alt="" draggable="false"
+				style="left:{{left}}%;top:{{top}}%;width:{{width}}%;height:{{height}}%;opacity:{{alpha}};{{#if rotation}}transform:rotate({{rotation}}deg);transform-origin:{{originX}}% {{originY}}%;{{/if}}" />
+			{{/each}}
+		</div>
 		<div class="pip-map-tint"></div>
 		{{#if map.view.hasToken}}<div class="pip-map-marker" data-tooltip="You"></div>{{/if}}
 	</div>

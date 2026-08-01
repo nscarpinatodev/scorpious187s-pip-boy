@@ -75,6 +75,16 @@ Toggle between two modes (each appears when available), with **wheel-zoom**,
   Shows only the scene's background art (no tokens, so no enemy positions leak).
   Re-centres as you move.
 
+Scene tiles can be shown on either view: tick **"Show on Pip-Boy map"** in a
+tile's configuration and it is drawn on the map in scene coordinates, taking the
+phosphor treatment along with the scene image. Hidden tiles are never shown.
+
+The STATUS tab also shows **per-limb resistances** (Phys / Energy / Rad / Poison,
+armour included), a **Power Armor health monitor** for equipped powered pieces
+(−/+ to damage/repair), and **NEEDS selectors** — hunger, thirst, and sleep are
+dropdowns that update the character directly. The DATA tab lists **active
+effects** (temporary with duration, passive, and inactive) below traits.
+
 ### Lower readout
 Clicking an item, perk, or trait (or rolling a skill) shows its **description** in
 the lower panel of the Pip-Boy casing — no extra window. The panel clears when you

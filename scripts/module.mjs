@@ -118,3 +118,46 @@ function refreshMapForToken(tokenDoc) {
 // `updateToken` covers non-movement changes and other cores.
 Hooks.on("moveToken", (tokenDoc) => refreshMapForToken(tokenDoc));
 Hooks.on("updateToken", (tokenDoc) => refreshMapForToken(tokenDoc));
+
+// "Show on Pip-Boy map" checkbox in the Tile configuration sheet. The input is
+// named into our flag scope, so Foundry's form handling saves it with the rest
+// of the tile — no custom submit logic needed.
+Hooks.on("renderTileConfig", (app, html) => {
+	const element = html instanceof HTMLElement ? html : html?.[0];
+	const doc = app.document ?? app.object;
+	if (!element || !doc) return;
+	const flagName = `flags.${MODULE_ID}.showOnMap`;
+	if (element.querySelector(`[name="${flagName}"]`)) return;
+	const checked = doc.getFlag(MODULE_ID, "showOnMap") ? "checked" : "";
+	const group = document.createElement("div");
+	group.className = "form-group";
+	group.innerHTML = `
+		<label>${game.i18n.localize("SCORPIOUS_PIPBOY.TileShowOnMap")}</label>
+		<div class="form-fields">
+			<input type="checkbox" name="${flagName}" ${checked} />
+		</div>
+		<p class="hint">${game.i18n.localize("SCORPIOUS_PIPBOY.TileShowOnMapHint")}</p>`;
+	const anchor = element.querySelector("footer, .form-footer");
+	if (anchor) anchor.before(group);
+	else element.querySelector("form")?.appendChild(group);
+	// Defer + guard: v14's tile config throws if setPosition runs before the
+	// element is laid out (TilePalette._updatePosition reads offsetWidth of null).
+	requestAnimationFrame(() => {
+		try {
+			if (app.element?.isConnected) app.setPosition?.({ height: "auto" });
+		} catch (_e) { /* non-fatal */ }
+	});
+});
+
+// Tagged tiles draw on the map, so tile changes on a shown scene refresh it.
+function refreshMapForTile(tileDoc) {
+	const parentId = tileDoc.parent?.id;
+	if (!parentId) return;
+	const worldSceneId = game.settings.get(MODULE_ID, "worldMapEnabled")
+		? game.settings.get(MODULE_ID, "worldMapSceneId")
+		: null;
+	if (parentId === canvas?.scene?.id || parentId === worldSceneId) PipBoyApp.refreshAll();
+}
+Hooks.on("createTile", (tileDoc) => refreshMapForTile(tileDoc));
+Hooks.on("updateTile", (tileDoc) => refreshMapForTile(tileDoc));
+Hooks.on("deleteTile", (tileDoc) => refreshMapForTile(tileDoc));

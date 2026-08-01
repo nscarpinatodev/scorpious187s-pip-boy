@@ -53,6 +53,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			zoomMap: PipBoyApp.#onZoomMap,
 			recenterMap: PipBoyApp.#onRecenterMap,
 			adjustHp: PipBoyApp.#onAdjustHp,
+			adjustPaHealth: PipBoyApp.#onAdjustPaHealth,
 			cycleInjury: PipBoyApp.#onCycleInjury,
 			openItem: PipBoyApp.#onOpenItem,
 			showInfo: PipBoyApp.#onShowInfo,
@@ -212,6 +213,34 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		return /^https?:|^data:/i.test(path) ? path : foundry.utils.getRoute(path);
 	}
 
+	/** Scene tiles the GM tagged "Show on Pip-Boy map", in % of the scene rect.
+	 *  Drawn inside the map canvas, so they pan/zoom and take the phosphor
+	 *  treatment along with the scene image. */
+	#sceneTiles(scene) {
+		const dim = scene.dimensions;
+		return scene.tiles.contents
+			.filter((t) => !t.hidden && t.texture?.src && t.getFlag(MODULE_ID, "showOnMap"))
+			.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || (a.elevation ?? 0) - (b.elevation ?? 0))
+			.map((t) => {
+				// v14 anchors tiles at texture.anchorX/Y (default 0.5 = centre);
+				// v13 tiles have no anchor, i.e. 0 = top-left. x/y is where the
+				// anchor sits, so shift back to the top-left corner for CSS.
+				const ax = t.texture?.anchorX ?? 0;
+				const ay = t.texture?.anchorY ?? 0;
+				return {
+					src: this.#resolveSrc(t.texture.src),
+					left: (100 * (t.x - ax * t.width - dim.sceneX)) / dim.sceneWidth,
+					top: (100 * (t.y - ay * t.height - dim.sceneY)) / dim.sceneHeight,
+					width: (100 * t.width) / dim.sceneWidth,
+					height: (100 * t.height) / dim.sceneHeight,
+					rotation: t.rotation ?? 0,
+					originX: ax * 100,
+					originY: ay * 100,
+					alpha: t.alpha ?? 1,
+				};
+			});
+	}
+
 	/** GM-configured world map: a chosen scene centred on the party token. */
 	#worldMapData() {
 		if (!game.settings.get(MODULE_ID, "worldMapEnabled")) return null;
@@ -223,6 +252,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { fx, fy, hasToken } = this.#tokenCenter(scene, token);
 		return {
 			bgSrc: this.#resolveSrc(bg),
+			tiles: this.#sceneTiles(scene),
 			fx, fy, hasToken,
 			sceneName: scene.name,
 			defaultZoom: game.settings.get(MODULE_ID, "worldMapZoom") || 1.5,
@@ -238,6 +268,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { fx, fy, hasToken } = this.#tokenCenter(scene, this.#findMyToken(scene));
 		return {
 			bgSrc: this.#resolveSrc(bg),
+			tiles: this.#sceneTiles(scene),
 			fx, fy, hasToken,
 			sceneName: scene.name,
 			defaultZoom: 2.5,
@@ -284,8 +315,42 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			};
 		});
 
+		// Per-limb damage resistances (armour included — the system derives these
+		// from equipped apparel in _calculateCharacterBodyResistance).
+		const resistances = LIMBS.map((key) => {
+			const r = sys.body_parts?.[key]?.resistance ?? {};
+			return {
+				key,
+				label: game.i18n.localize(`FALLOUT.BODYLOCATION.character.${key}`),
+				physical: r.physical ?? 0,
+				energy: r.energy ?? 0,
+				radiation: r.radiation ?? 0,
+				poison: r.poison ?? 0,
+			};
+		});
+
+		// Equipped + powered power-armor pieces by location. `outfittedLocations`
+		// is system-derived: false, or a plain-object copy of the apparel item.
+		const powerArmor = LIMBS.map((key) => {
+			const loc = sys.outfittedLocations?.[key];
+			if (!loc || loc.system?.apparelType !== "powerArmor") return null;
+			const paValue = loc.system.health?.value ?? 0;
+			const paMax = loc.system.health?.max ?? 0;
+			return {
+				key,
+				label: game.i18n.localize(`FALLOUT.BODYLOCATION.character.${key}`),
+				itemId: loc._id,
+				name: loc.name,
+				value: paValue,
+				max: paMax,
+				pct: paMax > 0 ? Math.clamp(Math.round((paValue / paMax) * 100), 0, 100) : 0,
+			};
+		}).filter(Boolean);
+
 		return {
 			health: { value, max, pct },
+			resistances,
+			powerArmor,
 			radiation: sys.radiation ?? 0,
 			luckPoints: sys.luckPoints ?? 0,
 			defense: sys.defense?.value ?? 0,
@@ -311,10 +376,21 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			const key = map?.[value ?? 0];
 			return key ? game.i18n.localize(key) : String(value ?? 0);
 		};
+		// Hunger/thirst/sleep render as selectors; a missing config map falls
+		// back to plain text.
+		const select = (map, current) => {
+			const entries = Object.entries(map ?? {});
+			if (!entries.length) return null;
+			return entries.map(([n, key]) => ({
+				value: n,
+				label: game.i18n.localize(key),
+				selected: Number(n) === Number(current ?? 0),
+			}));
+		};
 		return [
-			{ key: "hunger", label: "Hunger", value: text(F.HUNGER_BY_NUMBER, conditions.hunger) },
-			{ key: "thirst", label: "Thirst", value: text(F.THIRST_BY_NUMBER, conditions.thirst) },
-			{ key: "sleep", label: "Sleep", value: text(F.SLEEP_BY_NUMBER, conditions.sleep) },
+			{ key: "hunger", label: "Hunger", value: text(F.HUNGER_BY_NUMBER, conditions.hunger), options: select(F.HUNGER_BY_NUMBER, conditions.hunger) },
+			{ key: "thirst", label: "Thirst", value: text(F.THIRST_BY_NUMBER, conditions.thirst), options: select(F.THIRST_BY_NUMBER, conditions.thirst) },
+			{ key: "sleep", label: "Sleep", value: text(F.SLEEP_BY_NUMBER, conditions.sleep), options: select(F.SLEEP_BY_NUMBER, conditions.sleep) },
 			{ key: "fatigue", label: "Fatigue", value: conditions.fatigue ?? 0 },
 			{ key: "intoxication", label: "Intoxication", value: conditions.intoxication ?? 0 },
 		];
@@ -423,7 +499,27 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			.filter((i) => i.type === "trait")
 			.map((i) => ({ id: i.id, name: i.name, img: i.img }));
 
+		// Active effects (own + transferred from items), grouped the same way as
+		// the system sheet: temporary, then passive, then inactive (disabled).
+		const effects = [];
+		const effectSource = actor.allApplicableEffects?.() ?? actor.effects;
+		for (const e of effectSource) {
+			const state = e.disabled ? "inactive" : e.isTemporary ? "temporary" : "passive";
+			effects.push({
+				id: e.id,
+				name: e.name,
+				img: e.img,
+				state,
+				showState: state !== "temporary",
+				duration: state === "temporary" ? (e.duration?.label ?? "") : "",
+			});
+		}
+		const stateOrder = { temporary: 0, passive: 1, inactive: 2 };
+		effects.sort((a, b) =>
+			stateOrder[a.state] - stateOrder[b.state] || a.name.localeCompare(b.name));
+
 		return {
+			effects,
 			level: sys.level?.value ?? 1,
 			currentXP: sys.level?.currentXP ?? 0,
 			nextLevelXP: sys.level?.nextLevelXP ?? 0,
@@ -461,6 +557,18 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			});
 		}
 
+		// NEEDS selectors (hunger/thirst/sleep) write straight back to the actor;
+		// the updateActor hook re-renders every open Pip-Boy.
+		for (const sel of this.element.querySelectorAll(".pip-need-select")) {
+			sel.addEventListener("change", (event) => {
+				const key = event.currentTarget.dataset.key;
+				if (!key) return;
+				this.actor.update({
+					[`system.conditions.${key}`]: Number(event.currentTarget.value) || 0,
+				});
+			});
+		}
+
 		if (this.#activeTab === "map") this.#layoutMap();
 	}
 
@@ -493,11 +601,13 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		return this.#mapView.zoom ?? (parseFloat(vp.dataset.zoom) || 1.5);
 	}
 
-	/** Position the map background: centre on the token, then apply pan + zoom. */
+	/** Position the map canvas (scene + tagged tiles): centre on the token,
+	 *  then apply pan + zoom. */
 	#layoutMap() {
 		const vp = this.element?.querySelector(".pip-map-viewport");
-		const img = vp?.querySelector(".pip-map-scene");
-		if (!vp || !img) return;
+		const cv = vp?.querySelector(".pip-map-canvas");
+		const img = cv?.querySelector(".pip-map-scene");
+		if (!vp || !cv || !img) return;
 
 		const apply = () => {
 			const vw = vp.clientWidth;
@@ -508,10 +618,10 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			const fy = parseFloat(vp.dataset.fy) || 0.5;
 			const dispW = vw * zoom;
 			const dispH = dispW * (img.naturalHeight / img.naturalWidth);
-			img.style.width = `${dispW}px`;
-			img.style.height = `${dispH}px`;
-			img.style.left = `${vw / 2 - fx * dispW + this.#mapView.panX}px`;
-			img.style.top = `${vh / 2 - fy * dispH + this.#mapView.panY}px`;
+			cv.style.width = `${dispW}px`;
+			cv.style.height = `${dispH}px`;
+			cv.style.left = `${vw / 2 - fx * dispW + this.#mapView.panX}px`;
+			cv.style.top = `${vh / 2 - fy * dispH + this.#mapView.panY}px`;
 
 			// Keep the token marker on the token as the view pans/zooms.
 			const marker = vp.querySelector(".pip-map-marker");
@@ -616,6 +726,17 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onRecenterMap() {
 		this.#mapView = { zoom: null, panX: 0, panY: 0 };
 		this.#layoutMap();
+	}
+
+	/** +/- on a power-armor piece: adjust the apparel item's own health. */
+	static async #onAdjustPaHealth(event, target) {
+		event.stopPropagation();
+		const item = this.actor.items.get(target.dataset.itemId);
+		if (!item || item.system?.apparelType !== "powerArmor") return;
+		const delta = Number(target.dataset.delta) || 0;
+		const max = item.system.health?.max ?? 0;
+		const next = Math.clamp((item.system.health?.value ?? 0) + delta, 0, max);
+		await item.update({ "system.health.value": next });
 	}
 
 	static async #onAdjustHp(event, target) {
