@@ -1,5 +1,6 @@
-import { MODULE_ID } from "./constants.mjs";
+import { MODULE_ID, TINT_COLORS, FALLOUT_GREEN } from "./constants.mjs";
 import { rollWeaponAttack, rollWeaponDamage, rollSkill } from "./attacks.mjs";
+import { PipBoyRadio } from "./radio.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -21,6 +22,7 @@ const TABS = [
 	{ id: "inventory", label: "INV", icon: "fa-briefcase" },
 	{ id: "data", label: "DATA", icon: "fa-microchip" },
 	{ id: "map", label: "MAP", icon: "fa-map" },
+	{ id: "radio", label: "RADIO", icon: "fa-radio" },
 ];
 
 /**
@@ -64,6 +66,10 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			rollItem: PipBoyApp.#onRollItem,
 			toggleEquip: PipBoyApp.#onToggleEquip,
 			openSettings: PipBoyApp.#onOpenSettings,
+			toggleLight: PipBoyApp.#onToggleLight,
+			tuneStation: PipBoyApp.#onTuneStation,
+			nextTrack: PipBoyApp.#onNextTrack,
+			stopRadio: PipBoyApp.#onStopRadio,
 		},
 	};
 
@@ -107,6 +113,66 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		return app;
 	}
 
+	/** Bundled fallback per sound slot (null = silent unless a custom file exists). */
+	static #SOUND_DEFAULTS = {
+		activate: "activate.wav",
+		tab: "tab.wav",
+		select: "tab.wav",
+		rollover: "rollover.wav",
+		zoom: "rollover.wav",
+		radioOn: "tab.wav",
+		radioOff: "tab.wav",
+		lightOn: "tab.wav",
+		lightOff: "tab.wav",
+		close: null,
+	};
+
+	/** Expected filenames inside the custom-sound folder, per slot. */
+	static #CUSTOM_SOUND_FILES = {
+		activate: "activate.wav",
+		tab: "tab.wav",
+		select: "select.wav",
+		rollover: "rollover.wav",
+		zoom: "zoom.wav",
+		radioOn: "radio-on.wav",
+		radioOff: "radio-off.wav",
+		lightOn: "light-on.wav",
+		lightOff: "light-off.wav",
+		close: "close.wav",
+	};
+
+	/** Custom sound URLs discovered in the configured folder. */
+	static #customSounds = new Map();
+
+	/** Probe the configured custom-sound folder for per-slot files. Probed by
+	 *  URL (HEAD request), so players don't need file-browse permission. */
+	static async probeCustomSounds() {
+		PipBoyApp.#customSounds.clear();
+		const dir = (game.settings.get(MODULE_ID, "customSoundDir") ?? "").trim().replace(/\/+$/, "");
+		if (!dir) return;
+		await Promise.all(Object.entries(PipBoyApp.#CUSTOM_SOUND_FILES).map(async ([slot, name]) => {
+			const url = foundry.utils.getRoute(encodeURI(`${dir}/${name}`));
+			try {
+				const res = await fetch(url, { method: "HEAD" });
+				if (res.ok) PipBoyApp.#customSounds.set(slot, url);
+			} catch (_e) { /* missing file: keep the bundled default */ }
+		}));
+	}
+
+	/** Play one of the module's UI sounds locally (never broadcast). */
+	static playSound(slot) {
+		if (!game.settings.get(MODULE_ID, "uiSounds")) return;
+		let src = PipBoyApp.#customSounds.get(slot);
+		if (!src) {
+			const name = PipBoyApp.#SOUND_DEFAULTS[slot];
+			if (!name) return;
+			src = foundry.utils.getRoute(`modules/${MODULE_ID}/sounds/${name}`);
+		}
+		const volume = (game.settings.get(MODULE_ID, "uiVolume") ?? 0.8)
+			* (game.settings.get("core", "globalInterfaceVolume") ?? 1);
+		foundry.audio.AudioHelper.play({ src, volume, autoplay: true, loop: false }, false);
+	}
+
 	/** Re-render the open Pip-Boy for an actor, if any. */
 	static refreshFor(actor) {
 		const app = actor ? PipBoyApp.#instances.get(actor.id) : null;
@@ -121,6 +187,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	_onClose(options) {
+		// Silent by default; sounds if a custom close.wav is configured.
+		PipBoyApp.playSound("close");
+		this.#endBootSequence();
 		PipBoyApp.#instances.delete(this.actor.id);
 		return super._onClose(options);
 	}
@@ -138,6 +207,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		context.moduleId = MODULE_ID;
 		context.frameColor = game.settings.get(MODULE_ID, "frameColor") ?? "green";
 		context.showScanlines = game.settings.get(MODULE_ID, "scanlines") ?? true;
+		// POWER lamp glows while this actor's token light is on.
+		const myToken = canvas?.scene ? this.#findMyToken(canvas.scene) : null;
+		context.lightOn = myToken?.getFlag(MODULE_ID, "lightOn") === true;
 		// Resolve to a root-absolute URL so the inline-style url() isn't broken by
 		// Foundry's route prefix / trailing slash (relative url() 404s otherwise).
 		const framePath = `modules/${MODULE_ID}/frames/pipboy-frame-${context.frameColor}.png`;
@@ -145,12 +217,27 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		context.tabs = TABS.map((t) => ({ ...t, active: t.id === this.#activeTab }));
 		context.activeTab = this.#activeTab;
 
+		context.radio = this.#prepareRadio();
 		context.status = this.#prepareStatus(actor, sys);
 		context.inventory = this.#prepareInventory(actor);
 		context.data = this.#prepareData(actor, sys);
 		context.map = this.#prepareMap();
 
 		return context;
+	}
+
+	#prepareRadio() {
+		return {
+			stations: PipBoyRadio.stations().map((p) => ({
+				id: p.id,
+				name: p.name,
+				active: p.id === PipBoyRadio.station && PipBoyRadio.playing,
+			})),
+			nowPlaying: PipBoyRadio.nowPlaying,
+			folderName: PipBoyRadio.folderName,
+			volume: PipBoyRadio.volume,
+			uiVolume: game.settings.get(MODULE_ID, "uiVolume") ?? 0.8,
+		};
 	}
 
 	#prepareMap() {
@@ -535,8 +622,123 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	/*  Rendering                                    */
 	/* -------------------------------------------- */
 
+	_onFirstRender(context, options) {
+		super._onFirstRender(context, options);
+		// Pip-Boy activation sound when the window first opens.
+		PipBoyApp.playSound("activate");
+
+		// Generic "select" blip for clicked controls, bound once to the
+		// persistent root element. Tabs and the POWER lamp are excluded —
+		// they play their own dedicated sounds.
+		const OWN_SOUND_ACTIONS = new Set([
+			"switchTab", "toggleLight", "zoomMap", "tuneStation", "stopRadio",
+		]);
+		this.element.addEventListener("click", (event) => {
+			const target = event.target.closest?.("[data-action]");
+			if (!target || !this.element.contains(target)) return;
+			if (OWN_SOUND_ACTIONS.has(target.dataset.action)) return;
+			PipBoyApp.playSound("select");
+		});
+
+		// PIP-OS boot sequence over the CRT, timed to the activation sound.
+		if (game.settings.get(MODULE_ID, "bootScreen")) this.#runBootSequence();
+	}
+
+	/** Live boot-sequence overlay element while the boot animation runs. */
+	#bootEl = null;
+
+	/** The classic FO3 PIP-OS boot readout. */
+	static #BOOT_OS_LINES = [
+		"*************** PIP-OS(R) V7.1.0.8 ***************",
+		"",
+		"COPYRIGHT 2075 ROBCO(R)",
+		"LOADER V1.1",
+		"EXEC VERSION 41.10",
+		"64k RAM SYSTEM",
+		"38911 BYTES FREE",
+		"NO HOLOTAPE FOUND",
+		"LOAD ROM(1): DEITRIX 303",
+	];
+
+	static #BOOT_POOL = [
+		"CHECK RAM BANK", "RIB CONTROLLER", "EM WAVEGUIDE", "VAULT-TEC HOOKUP",
+		"BIOMETRIC SEAL", "GEIGER COUNTER", "HOLOTAPE DECK", "CATHODE ARRAY",
+		"PHOSPHOR GRID", "AUDIO DRIVER", "SENSOR RELAY", "POWER CELL",
+	];
+
+	static #bootLine() {
+		const hex = () => Math.floor(Math.random() * 0x10000)
+			.toString(16).toUpperCase().padStart(4, "0");
+		const item = PipBoyApp.#BOOT_POOL[
+			Math.floor(Math.random() * PipBoyApp.#BOOT_POOL.length)];
+		return `0x${hex()}:${hex()}  ${item} ... OK`;
+	}
+
+	/** FO3-style boot: ~2.5s of fast POST diagnostics, then the PIP-OS header
+	 *  line by line, then a blinking "Initiating..." — ending together with the
+	 *  ~5.15s Boot Sequence activation sound. Click the screen to skip. */
+	async #runBootSequence() {
+		const screen = this.element?.querySelector(".pipboy-screen");
+		if (!screen || this.#bootEl) return;
+		const el = document.createElement("div");
+		el.className = "pipboy-boot";
+		el.addEventListener("click", () => this.#endBootSequence());
+		screen.appendChild(el);
+		this.#bootEl = el;
+
+		const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+		const t0 = performance.now();
+
+		// Phase 1: POST diagnostics scrolling by.
+		const scroll = document.createElement("div");
+		scroll.className = "pip-boot-scroll";
+		el.appendChild(scroll);
+		while (performance.now() - t0 < 2500) {
+			if (this.#bootEl !== el) return;
+			const line = document.createElement("div");
+			line.textContent = PipBoyApp.#bootLine();
+			scroll.appendChild(line);
+			scroll.scrollTop = scroll.scrollHeight;
+			await wait(18 + Math.random() * 40);
+		}
+		if (this.#bootEl !== el) return;
+
+		// Phase 2: the PIP-OS header, one line at a time.
+		scroll.remove();
+		const os = document.createElement("div");
+		os.className = "pip-boot-os";
+		el.appendChild(os);
+		for (const text of PipBoyApp.#BOOT_OS_LINES) {
+			if (this.#bootEl !== el) return;
+			const line = document.createElement("div");
+			line.textContent = text || " ";
+			os.appendChild(line);
+			await wait(130);
+		}
+		if (this.#bootEl !== el) return;
+
+		// Phase 3: blinking cursor until the activation sound finishes.
+		const init = document.createElement("div");
+		init.className = "pip-boot-init";
+		init.textContent = "Initiating...";
+		os.appendChild(init);
+		await wait(Math.max(300, 5150 - (performance.now() - t0)));
+		if (this.#bootEl === el) this.#endBootSequence();
+	}
+
+	#endBootSequence() {
+		this.#bootEl?.remove();
+		this.#bootEl = null;
+	}
+
 	_onRender(context, options) {
 		super._onRender(context, options);
+
+		// A re-render mid-boot rebuilds the screen; keep the overlay attached
+		// (the animation loop holds a reference and carries on unbroken).
+		if (this.#bootEl && !this.#bootEl.isConnected) {
+			this.element?.querySelector(".pipboy-screen")?.appendChild(this.#bootEl);
+		}
 
 		// Track each pane's scroll so it can be restored across re-renders.
 		for (const pane of this.element.querySelectorAll(".pip-pane")) {
@@ -554,6 +756,24 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			row.addEventListener("contextmenu", (event) => {
 				event.preventDefault();
 				row.classList.toggle("show-attrs");
+			});
+		}
+
+		// Hovering a GM-tagged tile on the MAP tab plays the map-rollover blip.
+		for (const tile of this.element.querySelectorAll(".pip-map-tile")) {
+			tile.addEventListener("mouseenter", () => PipBoyApp.playSound("rollover"));
+		}
+
+		// Volume sliders: live-adjust while dragging, persist on release.
+		for (const slider of this.element.querySelectorAll(".pip-volume-slider")) {
+			slider.addEventListener("input", (event) => {
+				if (event.currentTarget.dataset.volume === "radio") {
+					PipBoyRadio.setVolume(Number(event.currentTarget.value));
+				}
+			});
+			slider.addEventListener("change", (event) => {
+				const key = event.currentTarget.dataset.volume === "radio" ? "radioVolume" : "uiVolume";
+				game.settings.set(MODULE_ID, key, Number(event.currentTarget.value));
 			});
 		}
 
@@ -682,6 +902,54 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	/*  Actions                                      */
 	/* -------------------------------------------- */
 
+	/** POWER lamp on the casing: toggle a 10 bright / 20 dim Pip-Boy light on
+	 *  this actor's token, restoring the token's previous light when switched
+	 *  off. Colour follows the "Pip-Boy Light Colour" client setting. */
+	static async #onToggleLight() {
+		const scene = canvas?.scene;
+		const token = scene ? this.#findMyToken(scene) : null;
+		if (!token) {
+			ui.notifications?.warn("Your token is not on the active scene, so the Pip-Boy light has nothing to shine from.");
+			return;
+		}
+		if (token.getFlag(MODULE_ID, "lightOn") === true) {
+			PipBoyApp.playSound("lightOff");
+			// Restore whatever light the token had before we lit it.
+			const prev = token.getFlag(MODULE_ID, "prevLight") ?? {};
+			await token.update({
+				light: prev,
+				[`flags.${MODULE_ID}.-=lightOn`]: null,
+				[`flags.${MODULE_ID}.-=prevLight`]: null,
+			});
+		} else {
+			PipBoyApp.playSound("lightOn");
+			const useScreen = game.settings.get(MODULE_ID, "lightColor") === "screen";
+			const frame = game.settings.get(MODULE_ID, "frameColor");
+			const color = useScreen ? (TINT_COLORS[frame] ?? FALLOUT_GREEN) : FALLOUT_GREEN;
+			await token.update({
+				[`flags.${MODULE_ID}.prevLight`]: token.light?.toObject() ?? {},
+				[`flags.${MODULE_ID}.lightOn`]: true,
+				light: { bright: 10, dim: 20, angle: 360, color, alpha: 0.35 },
+			});
+		}
+	}
+
+	static #onTuneStation(event, target) {
+		const id = target.dataset.playlistId;
+		const turningOff = PipBoyRadio.playing && PipBoyRadio.station === id;
+		PipBoyApp.playSound(turningOff ? "radioOff" : "radioOn");
+		PipBoyRadio.tune(id);
+	}
+
+	static #onNextTrack() {
+		PipBoyRadio.next();
+	}
+
+	static #onStopRadio() {
+		PipBoyApp.playSound("radioOff");
+		PipBoyRadio.stop();
+	}
+
 	/** Dial wheel on the casing: open the settings sheet on this module's tab. */
 	static async #onOpenSettings() {
 		const sheet = game.settings.sheet;
@@ -701,6 +969,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onSwitchTab(event, target) {
 		const tab = target.dataset.tab;
 		if (!tab || tab === this.#activeTab) return;
+		PipBoyApp.playSound("tab");
 		this.#activeTab = tab;
 		this.#applyActiveTab(this.element);
 		// Clear the lower readout when moving to a different tab.
@@ -719,6 +988,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onZoomMap(event, target) {
 		const vp = this.element?.querySelector(".pip-map-viewport");
 		if (!vp) return;
+		PipBoyApp.playSound("zoom");
 		const dir = Number(target.dataset.dir) || 0;
 		this.#setZoom(this.#currentZoom(vp) * (dir > 0 ? 1.25 : 1 / 1.25));
 	}

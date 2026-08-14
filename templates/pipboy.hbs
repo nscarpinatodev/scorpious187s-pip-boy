@@ -33,9 +33,16 @@
 				<section class="pip-pane" data-tab-content="map">
 					{{> "modules/scorpious187s-pip-boy/templates/tabs/map.hbs"}}
 				</section>
+				<section class="pip-pane" data-tab-content="radio">
+					{{> "modules/scorpious187s-pip-boy/templates/tabs/radio.hbs"}}
+				</section>
 			</div>
 		</div>
 	</div>
+
+	{{!-- POWER lamp hotspot: toggles the Pip-Boy light on the actor's token --}}
+	<button type="button" class="pipboy-power-lamp{{#if lightOn}} lit{{/if}}" data-action="toggleLight"
+		data-tooltip="Pip-Boy light" aria-label="Pip-Boy light"></button>
 
 	{{!-- Invisible hotspot over the casing's dial wheel: opens Module Settings --}}
 	<button type="button" class="pipboy-dial-settings" data-action="openSettings"

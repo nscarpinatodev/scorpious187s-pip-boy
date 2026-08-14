@@ -3,6 +3,45 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-08-14
+
+### Added
+
+- **Pip-Boy sounds** — an activation sound when the Pip-Boy opens and a
+  page-change sound when switching tabs. Original synthesized retro UI audio
+  (no game assets); per-client "Pip-Boy Sounds" setting to turn them off,
+  volume follows the core Interface volume slider.
+- **Pip-Boy light** — the POWER lamp on the casing is now clickable and toggles
+  a 10 bright / 20 dim light on the actor's token (the lamp glows while on, and
+  the token's previous lighting is restored when switched off). A per-client
+  setting picks the colour: classic Fallout Green (default) or matching your
+  Pip-Boy screen colour.
+- **RADIO tab** — playlists inside a GM-named playlist folder (default
+  "Pip-Boy Radio") appear as stations. Tuning plays the playlist **locally
+  only** — nothing is broadcast, so every player hears their own station (or
+  silence). Includes now-playing readout, next-track and off buttons, plus
+  per-client RADIO and SOUNDS volume sliders.
+- **PIP-OS boot screen** — an FO3-style boot sequence plays on the CRT when the
+  Pip-Boy opens: fast POST diagnostics, the PIP-OS(R) V7.1.0.8 readout, and a
+  blinking cursor, timed to the activation sound (~5s). Click the screen to
+  skip; per-client setting to disable.
+- **Select, map-rollover, zoom, and radio on/off sounds** — clicking Pip-Boy
+  controls plays a select blip, hovering a GM-tagged tile on the MAP tab plays
+  a rollover blip, the map zoom buttons blip, and tuning the radio in/out has
+  its own on/off sounds.
+- **Custom Sound Folder** (world setting) — point the module at a folder in
+  your Foundry user data containing replacement sounds (activate.wav, tab.wav,
+  select.wav, rollover.wav, zoom.wav, radio-on.wav, radio-off.wav,
+  light-on.wav, light-off.wav, close.wav); missing
+  files fall back to the bundled synthesized audio. User-provided files are
+  never part of the module — do not redistribute copyrighted audio.
+
+### Fixed
+
+- **Tile config checkbox on every tab** — the "Show on Pip-Boy map" checkbox now
+  sits inside the Appearance tab of the Tile configuration instead of floating
+  below every tab.
+
 ## [0.3.0] — 2026-07-31
 
 ### Added

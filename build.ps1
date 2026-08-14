@@ -13,7 +13,7 @@ $root = $PSScriptRoot
 # Files/folders that make up the distributable module.
 $include = @(
     "module.json",
-    "scripts", "styles", "templates", "lang", "frames",
+    "scripts", "styles", "templates", "lang", "frames", "sounds",
     "README.md", "LICENSE", "CHANGELOG.md"
 )
 

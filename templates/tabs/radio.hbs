@@ -1,0 +1,47 @@
+{{!-- RADIO: local-only stations + volume controls. Nothing here is broadcast. --}}
+<div class="pip-radio">
+
+	<h3 class="pip-section-title"><i class="fas fa-radio"></i> STATIONS</h3>
+	{{#if radio.stations.length}}
+	<ul class="pip-station-list">
+		{{#each radio.stations}}
+		<li class="pip-station{{#if active}} active{{/if}}" data-action="tuneStation" data-playlist-id="{{id}}"
+			data-tooltip="{{#if active}}Turn radio off{{else}}Tune in{{/if}}">
+			<i class="fas {{#if active}}fa-circle-dot{{else}}fa-circle{{/if}}"></i>
+			<span class="pip-item-name">{{name}}</span>
+			{{#if active}}<span class="pip-station-live">ON AIR</span>{{/if}}
+		</li>
+		{{/each}}
+	</ul>
+	{{else}}
+	<p class="pip-empty">NO SIGNAL — the GM can add stations by putting playlists in a
+	"{{radio.folderName}}" playlist folder.</p>
+	{{/if}}
+
+	{{#if radio.nowPlaying}}
+	<div class="pip-now-playing">
+		<span class="pip-np-label">NOW PLAYING</span>
+		<span class="pip-np-track">{{radio.nowPlaying}}</span>
+		<span class="pip-np-controls">
+			<button type="button" class="pip-icon-btn" data-action="nextTrack" data-tooltip="Next track">
+				<i class="fas fa-forward"></i>
+			</button>
+			<button type="button" class="pip-icon-btn" data-action="stopRadio" data-tooltip="Radio off">
+				<i class="fas fa-power-off"></i>
+			</button>
+		</span>
+	</div>
+	{{/if}}
+
+	<h3 class="pip-section-title"><i class="fas fa-volume-high"></i> VOLUME</h3>
+	<div class="pip-volume">
+		<label>RADIO</label>
+		<input type="range" class="pip-volume-slider" data-volume="radio"
+			min="0" max="1" step="0.05" value="{{radio.volume}}" />
+		<label>SOUNDS</label>
+		<input type="range" class="pip-volume-slider" data-volume="ui"
+			min="0" max="1" step="0.05" value="{{radio.uiVolume}}" />
+	</div>
+	<p class="pip-radio-note">The radio plays only for you — other players are unaffected.</p>
+
+</div>

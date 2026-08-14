@@ -9,3 +9,19 @@ export const MODULE_ID = "scorpious187s-pip-boy";
 export const FRAME_COLORS = [
 	"green", "blue", "bronze", "beige", "gray", "purple", "red", "yellow",
 ];
+
+/** Phosphor screen colour per frame (mirrors the .pip-tint-* CSS variables).
+ *  Used for the Pip-Boy token light when it matches the screen. */
+export const TINT_COLORS = {
+	green: "#35ff7b",
+	blue: "#43d4ff",
+	bronze: "#ffb454",
+	beige: "#ffd9a0",
+	gray: "#c9d6cd",
+	purple: "#c58bff",
+	red: "#ff5f57",
+	yellow: "#ffe14d",
+};
+
+/** The classic Pip-Boy phosphor green — default colour for the light. */
+export const FALLOUT_GREEN = "#35ff7b";

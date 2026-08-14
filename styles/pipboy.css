@@ -124,6 +124,34 @@
 	box-shadow: 0 0 0 2px var(--pip), 0 0 12px 2px var(--pip-glow);
 }
 
+/* --- POWER lamp light toggle ----------------------------------------------- */
+/* Invisible button over the casing's POWER lamp (bottom-left, x27-62 y532-570
+   of the 744x1039 frame art). Glows while the token light is on. */
+.pipboy-power-lamp {
+	position: absolute;
+	left: 3.4%;
+	top: 50.8%;
+	width: 5.4%;
+	height: 4.6%;
+	z-index: 6; /* above the casing ::after overlay */
+	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	border-radius: 50%;
+}
+.pipboy-power-lamp:hover,
+.pipboy-power-lamp:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--pip), 0 0 12px 2px var(--pip-glow);
+}
+.pipboy-power-lamp.lit {
+	box-shadow:
+		0 0 10px 4px rgba(255, 190, 80, 0.55),
+		inset 0 0 8px 2px rgba(255, 220, 140, 0.5);
+}
+
 /* --- screen --------------------------------------------------------------- */
 /* Sized slightly larger than the measured cutout so it underlaps the bezel;
    the ::after overlay above hides the overshoot. */
@@ -163,6 +191,33 @@
 	98% { opacity: 0.82; }
 	99% { opacity: 0.94; }
 }
+
+/* --- PIP-OS boot sequence -------------------------------------------------- */
+/* Opaque overlay on the CRT; sits above the content but under the scanline
+   overlay (z 3) so the boot text gets the CRT treatment too. */
+.pipboy-boot {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	background: var(--pip-bg);
+	color: var(--pip);
+	font-family: "Consolas", "Lucida Console", monospace;
+	font-size: 11px;
+	line-height: 1.35;
+	padding: 10px 14px;
+	overflow: hidden;
+	cursor: pointer;
+	text-shadow: 0 0 4px var(--pip-glow);
+}
+.pip-boot-scroll { height: 100%; overflow: hidden; opacity: 0.9; }
+.pip-boot-os { margin-top: 8px; letter-spacing: 1px; white-space: pre; }
+.pip-boot-init::after {
+	content: "\2588";
+	margin-left: 2px;
+	animation: pip-boot-cursor 0.8s steps(1) infinite;
+}
+@keyframes pip-boot-cursor { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pip-boot-init::after { animation: none; } }
 
 /* curved glass vignette */
 .pipboy-glass {
@@ -468,6 +523,78 @@
 .pip-effect-inactive { opacity: 0.45; }
 .pip-effect-inactive .pip-item-img { filter: grayscale(1); }
 
+/* --- RADIO tab ------------------------------------------------------------ */
+.pip-station-list { list-style: none; margin: 0; padding: 0; }
+.pip-station {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 4px;
+	border: 1px solid var(--pip-dim);
+	margin-bottom: 3px;
+	cursor: pointer;
+	font-size: 11px;
+	letter-spacing: 1px;
+}
+.pip-station:hover { border-color: var(--pip); }
+.pip-station.active {
+	border-color: var(--pip);
+	background: rgba(0, 0, 0, 0.35);
+	box-shadow: inset 0 0 8px var(--pip-glow);
+}
+.pip-station.active i { animation: pip-onair 1.6s infinite ease-in-out; }
+@keyframes pip-onair { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pip-station-live { margin-left: auto; font-size: 9px; letter-spacing: 2px; opacity: 0.85; }
+
+.pip-now-playing {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 6px 0;
+	padding: 4px 6px;
+	border: 1px dashed var(--pip-dim);
+	font-size: 11px;
+}
+.pip-np-label { font-size: 9px; letter-spacing: 2px; opacity: 0.75; white-space: nowrap; }
+.pip-np-track { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.pip-np-controls { display: flex; gap: 6px; }
+
+.pip-volume {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 6px 10px;
+	align-items: center;
+	font-size: 10px;
+	letter-spacing: 1px;
+}
+.pip-volume-slider {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 4px;
+	background: var(--pip-dim);
+	outline: none;
+	cursor: pointer;
+}
+.pip-volume-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 10px;
+	height: 14px;
+	background: var(--pip);
+	box-shadow: 0 0 6px var(--pip-glow);
+	cursor: pointer;
+}
+.pip-volume-slider::-moz-range-thumb {
+	width: 10px;
+	height: 14px;
+	border: none;
+	border-radius: 0;
+	background: var(--pip);
+	box-shadow: 0 0 6px var(--pip-glow);
+	cursor: pointer;
+}
+.pip-radio-note { font-size: 9px; opacity: 0.6; margin: 8px 0 0; letter-spacing: 1px; }
+
 .pip-empty { text-align: center; opacity: 0.6; padding: 12px; letter-spacing: 2px; }
 
 /* --- MAP placeholder ------------------------------------------------------ */
@@ -517,12 +644,13 @@
 	/* desaturate; the tint layer recolours everything to the phosphor hue */
 	filter: grayscale(1) brightness(0.85) contrast(1.15);
 }
-/* GM-tagged scene tiles, drawn onto the map in scene coordinates */
+/* GM-tagged scene tiles, drawn onto the map in scene coordinates.
+   Tiles receive pointer events so hovering one can play the rollover blip;
+   clicks/drags still bubble up to the viewport's pan handling. */
 .pip-map-tile {
 	position: absolute;
 	max-width: none;
 	user-select: none;
-	pointer-events: none;
 }
 .pip-map-tint {
 	position: absolute;

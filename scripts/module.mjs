@@ -1,5 +1,6 @@
 import { MODULE_ID, FRAME_COLORS } from "./constants.mjs";
 import { PipBoyApp } from "./PipBoyApp.mjs";
+import { PipBoyRadio } from "./radio.mjs";
 import { WorldMapConfig } from "./WorldMapConfig.mjs";
 import { registerTokenHudButton } from "./token-hud.mjs";
 
@@ -14,6 +15,7 @@ const TEMPLATE_PARTIALS = [
 	`modules/${MODULE_ID}/templates/tabs/inventory.hbs`,
 	`modules/${MODULE_ID}/templates/tabs/data.hbs`,
 	`modules/${MODULE_ID}/templates/tabs/map.hbs`,
+	`modules/${MODULE_ID}/templates/tabs/radio.hbs`,
 ];
 
 Hooks.once("init", async () => {
@@ -50,6 +52,67 @@ Hooks.once("init", async () => {
 		},
 	});
 
+	game.settings.register(MODULE_ID, "bootScreen", {
+		name: "PIP-OS Boot Screen",
+		hint: "Play the PIP-OS boot sequence on the screen when the Pip-Boy opens. Click the screen to skip it.",
+		scope: "client",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "uiSounds", {
+		name: "Pip-Boy Sounds",
+		hint: "Play the Pip-Boy activation and page-change sounds (heard only by you).",
+		scope: "client",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "customSoundDir", {
+		name: "Custom Sound Folder",
+		hint: "Optional folder (inside your Foundry user data) with replacement Pip-Boy sounds: "
+			+ "activate.wav, tab.wav, light-on.wav, light-off.wav, close.wav. Missing files fall "
+			+ "back to the bundled sounds. Files placed here are served to all players but are "
+			+ "NOT part of this module — do not redistribute copyrighted audio.",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "",
+		filePicker: "folder",
+		onChange: () => PipBoyApp.probeCustomSounds(),
+	});
+
+	game.settings.register(MODULE_ID, "radioFolder", {
+		name: "Radio Station Folder",
+		hint: "Playlists inside a playlist folder with this name appear as stations on the "
+			+ "Pip-Boy RADIO tab. The radio plays locally per player and never affects others.",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "Pip-Boy Radio",
+	});
+	game.settings.register(MODULE_ID, "radioVolume", {
+		scope: "client", config: false, type: Number, default: 0.5,
+	});
+	game.settings.register(MODULE_ID, "uiVolume", {
+		scope: "client", config: false, type: Number, default: 0.8,
+	});
+
+	game.settings.register(MODULE_ID, "lightColor", {
+		name: "Pip-Boy Light Colour",
+		hint: "Colour of the token light toggled from the POWER lamp on the casing.",
+		scope: "client",
+		config: true,
+		type: String,
+		default: "green",
+		choices: {
+			green: "Fallout Green",
+			screen: "Match my screen colour",
+		},
+	});
+
 	// --- World Map settings (GM) -----------------------------------------
 	game.settings.register(MODULE_ID, "worldMapEnabled", {
 		scope: "world", config: false, type: Boolean, default: false,
@@ -72,9 +135,14 @@ Hooks.once("init", async () => {
 		restricted: true,
 	});
 
+	// Radio re-renders open Pip-Boys on track/station changes (callback rather
+	// than an import so radio.mjs stays cycle-free).
+	PipBoyRadio.onUpdate = () => PipBoyApp.refreshAll();
+
 	// Expose a small API for macros / other modules.
 	game.modules.get(MODULE_ID).api = {
 		open: (actor) => PipBoyApp.open(actor),
+		radio: PipBoyRadio,
 	};
 
 	await foundry.applications.handlebars.loadTemplates(TEMPLATE_PARTIALS);
@@ -86,6 +154,8 @@ Hooks.once("ready", () => {
 			"Fallout Pip-Boy is designed for the 'fallout' system and may not work with the active system.",
 		);
 	}
+	// Discover any GM-provided replacement sounds.
+	PipBoyApp.probeCustomSounds();
 });
 
 // Token HUD launch button.
@@ -137,9 +207,16 @@ Hooks.on("renderTileConfig", (app, html) => {
 			<input type="checkbox" name="${flagName}" ${checked} />
 		</div>
 		<p class="hint">${game.i18n.localize("SCORPIOUS_PIPBOY.TileShowOnMapHint")}</p>`;
-	const anchor = element.querySelector("footer, .form-footer");
-	if (anchor) anchor.before(group);
-	else element.querySelector("form")?.appendChild(group);
+	// v13+ TileConfig is tabbed and its footer sits outside the tab panes, so
+	// anchoring on the footer makes the checkbox show on every tab. Inject into
+	// the Appearance pane instead; fall back to the form end on older layouts.
+	const tab = element.querySelector('.tab[data-tab="appearance"]');
+	if (tab) tab.appendChild(group);
+	else {
+		const anchor = element.querySelector("footer, .form-footer");
+		if (anchor) anchor.before(group);
+		else element.querySelector("form")?.appendChild(group);
+	}
 	// Defer + guard: v14's tile config throws if setPosition runs before the
 	// element is laid out (TilePalette._updatePosition reads offsetWidth of null).
 	requestAnimationFrame(() => {

@@ -85,6 +85,26 @@ armour included), a **Power Armor health monitor** for equipped powered pieces
 dropdowns that update the character directly. The DATA tab lists **active
 effects** (temporary with duration, passive, and inactive) below traits.
 
+### RADIO tab
+Playlists inside a playlist folder named **"Pip-Boy Radio"** (configurable)
+appear as stations. Tuning a station plays it **locally only** — every player
+can listen to their own station without affecting anyone else. Now-playing
+readout, next-track / off buttons, and per-client **RADIO** and **SOUNDS**
+volume sliders.
+
+### Custom sounds
+The GM can set a **Custom Sound Folder** (in Foundry user data) holding
+replacement audio for `activate.wav`, `tab.wav`, `select.wav`, `rollover.wav`,
+`zoom.wav`, `radio-on.wav`, `radio-off.wav`, `light-on.wav`, `light-off.wav`,
+and `close.wav`. Missing files fall back to the bundled synthesized sounds.
+
+### PIP-OS boot screen
+Opening the Pip-Boy plays an FO3-style boot sequence on the CRT — POST
+diagnostics, the PIP-OS(R) readout, and a blinking cursor — timed to the
+activation sound. Click the screen to skip, or disable it per-client in
+Module Settings. Provide your own files only — this module does not ship or
+endorse redistributing copyrighted game audio.
+
 ### Lower readout
 Clicking an item, perk, or trait (or rolling a skill) shows its **description** in
 the lower panel of the Pip-Boy casing — no extra window. The panel clears when you
@@ -95,6 +115,12 @@ switch tabs or select something new.
 - CRT scanlines, glow, and a transparent window background so only the casing shows.
   Scanlines can be turned off per-client in Module Settings for readability.
 - The **dial wheel** on the right edge of the casing opens the settings sheet.
+- **Pip-Boy sounds** — activation and page-change blips (synthesized, no game
+  assets); toggle per-client in Module Settings.
+- **Pip-Boy light** — click the **POWER lamp** on the casing to toggle a
+  10 bright / 20 dim light on your token, in Fallout Green or your screen
+  colour (per-client setting). Switching it off restores the token's previous
+  lighting.
 - **Live updates** from the actor, its items, and token movement.
 - **Per-tab scroll positions are preserved** across re-renders.
 
