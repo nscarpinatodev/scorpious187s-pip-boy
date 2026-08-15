@@ -56,6 +56,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			recenterMap: PipBoyApp.#onRecenterMap,
 			adjustHp: PipBoyApp.#onAdjustHp,
 			adjustPaHealth: PipBoyApp.#onAdjustPaHealth,
+			togglePaPower: PipBoyApp.#onTogglePaPower,
 			cycleInjury: PipBoyApp.#onCycleInjury,
 			openItem: PipBoyApp.#onOpenItem,
 			showInfo: PipBoyApp.#onShowInfo,
@@ -190,6 +191,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		// Silent by default; sounds if a custom close.wav is configured.
 		PipBoyApp.playSound("close");
 		this.#endBootSequence();
+		this.#closeEditFlyout();
 		PipBoyApp.#instances.delete(this.actor.id);
 		return super._onClose(options);
 	}
@@ -418,7 +420,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
 		// Equipped + powered power-armor pieces by location. `outfittedLocations`
 		// is system-derived: false, or a plain-object copy of the apparel item.
-		const powerArmor = LIMBS.map((key) => {
+		const paPieces = LIMBS.map((key) => {
 			const loc = sys.outfittedLocations?.[key];
 			if (!loc || loc.system?.apparelType !== "powerArmor") return null;
 			const paValue = loc.system.health?.value ?? 0;
@@ -433,6 +435,27 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 				pct: paMax > 0 ? Math.clamp(Math.round((paValue / paMax) * 100), 0, 100) : 0,
 			};
 		}).filter(Boolean);
+
+		// Equipped power-armor frames: shown even when unpowered (unpowered
+		// armor drops out of `outfittedLocations`, so the frame row is what
+		// lets you power it back up from the Pip-Boy).
+		const paFrames = actor.items
+			.filter((i) => i.type === "apparel"
+				&& i.system?.apparelType === "powerArmor"
+				&& i.system?.powerArmor?.isFrame === true
+				&& i.system?.equipped === true
+				&& i.system?.stashed !== true)
+			.map((i) => ({
+				id: i.id,
+				name: i.name,
+				powered: i.system.powerArmor.powered === true,
+			}));
+
+		const powerArmor = {
+			frames: paFrames,
+			pieces: paPieces,
+			available: paFrames.length > 0 || paPieces.length > 0,
+		};
 
 		return {
 			health: { value, max, pct },
@@ -478,8 +501,8 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			{ key: "hunger", label: "Hunger", value: text(F.HUNGER_BY_NUMBER, conditions.hunger), options: select(F.HUNGER_BY_NUMBER, conditions.hunger) },
 			{ key: "thirst", label: "Thirst", value: text(F.THIRST_BY_NUMBER, conditions.thirst), options: select(F.THIRST_BY_NUMBER, conditions.thirst) },
 			{ key: "sleep", label: "Sleep", value: text(F.SLEEP_BY_NUMBER, conditions.sleep), options: select(F.SLEEP_BY_NUMBER, conditions.sleep) },
-			{ key: "fatigue", label: "Fatigue", value: conditions.fatigue ?? 0 },
-			{ key: "intoxication", label: "Intoxication", value: conditions.intoxication ?? 0 },
+			{ key: "fatigue", label: "Fatigue", value: conditions.fatigue ?? 0, editPath: "system.conditions.fatigue", editLabel: "FATIGUE" },
+			{ key: "intoxication", label: "Intoxication", value: conditions.intoxication ?? 0, editPath: "system.conditions.intoxication", editLabel: "INTOXICATION" },
 		];
 	}
 
@@ -640,8 +663,36 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			PipBoyApp.playSound("select");
 		});
 
+		// Dropping an Item onto the Pip-Boy adds it to this character. Bound
+		// once to the persistent root element.
+		const DragDropCls = foundry.applications.ux?.DragDrop ?? DragDrop;
+		new DragDropCls({
+			dropSelector: null,
+			callbacks: { drop: this.#onDropItem.bind(this) },
+		}).bind(this.element);
+
 		// PIP-OS boot sequence over the CRT, timed to the activation sound.
 		if (game.settings.get(MODULE_ID, "bootScreen")) this.#runBootSequence();
+	}
+
+	/** Dropping an Item (from the sidebar, a compendium, or another actor's
+	 *  sheet) onto the Pip-Boy adds a copy to this character — the same result
+	 *  as dropping it on the character sheet. */
+	async #onDropItem(event) {
+		const TextEditorCls = foundry.applications.ux?.TextEditor?.implementation ?? TextEditor;
+		const data = TextEditorCls.getDragEventData(event);
+		if (data?.type !== "Item") return;
+		const item = await Item.implementation.fromDropData(data);
+		if (!item) return;
+		// Re-dropping the actor's own item would only duplicate it — ignore.
+		if (item.parent?.uuid === this.actor.uuid) return;
+		if (!this.actor.isOwner) {
+			ui.notifications?.warn(`You do not have permission to modify ${this.actor.name}.`);
+			return;
+		}
+		await this.actor.createEmbeddedDocuments("Item", [item.toObject()]);
+		PipBoyApp.playSound("select");
+		ui.notifications?.info(`${item.name} added to ${this.actor.name}.`);
 	}
 
 	/** Live boot-sequence overlay element while the boot animation runs. */
@@ -777,6 +828,25 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			});
 		}
 
+		// Right-click an inventory item: Drop / Transfer / Delete context menu.
+		for (const row of this.element.querySelectorAll(".pip-item[data-item-id]")) {
+			row.addEventListener("contextmenu", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				this.#openItemMenu(row, event);
+			});
+		}
+
+		// Right-click editable stats (RADS / LUCK / CAPS / LEVEL / XP): open a
+		// small fly-out with a number input that writes back to the actor.
+		for (const el of this.element.querySelectorAll(".pip-editable")) {
+			el.addEventListener("contextmenu", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				this.#openEditFlyout(el);
+			});
+		}
+
 		// NEEDS selectors (hunger/thirst/sleep) write straight back to the actor;
 		// the updateActor hook re-renders every open Pip-Boy.
 		for (const sel of this.element.querySelectorAll(".pip-need-select")) {
@@ -790,6 +860,244 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		}
 
 		if (this.#activeTab === "map") this.#layoutMap();
+	}
+
+	/** Removes the open pop-up — edit fly-out OR item context menu — and its
+	 *  document listener, if any. Only one pop-up is ever open at a time. */
+	#editFlyoutCleanup = null;
+
+	#closeEditFlyout() {
+		this.#editFlyoutCleanup?.();
+		this.#editFlyoutCleanup = null;
+	}
+
+	/** Fly-out editor for a `.pip-editable` element: number input prefilled with
+	 *  the actor's current value at `data-edit-path`; Enter/✓ commits, Escape or
+	 *  clicking elsewhere cancels. */
+	/** The host element whose edit fly-out is currently open, if any. */
+	#editHost = null;
+
+	#openEditFlyout(host) {
+		// Right-clicking the host again while open just closes it.
+		const wasOpenHere = this.#editHost === host;
+		this.#closeEditFlyout();
+		if (wasOpenHere) return;
+
+		const path = host.dataset.editPath;
+		if (!path) return;
+		// Edit an embedded item when data-edit-item-id is set, else the actor.
+		const doc = host.dataset.editItemId
+			? this.actor.items.get(host.dataset.editItemId)
+			: this.actor;
+		if (!doc) return;
+		const current = Number(foundry.utils.getProperty(doc, path) ?? 0);
+		const min = host.dataset.editMin ?? "0";
+		const max = host.dataset.editMax;
+
+		const flyout = document.createElement("div");
+		flyout.className = "pip-edit-flyout";
+		flyout.innerHTML = `
+			<span class="pip-edit-label">${host.dataset.editLabel ?? ""}</span>
+			<input type="number" step="1" min="${min}"${max != null ? ` max="${max}"` : ""} value="${current}" />
+			<button type="button" class="pip-edit-ok" aria-label="Apply"><i class="fas fa-check"></i></button>`;
+		// The fly-out lives on the CRT content layer, NOT inside the scrollable
+		// tab pane: in the pane it gets clipped at the pane box and its right
+		// overhang widens the pane into a horizontal scrollbar. On the content
+		// layer it can be clamped to the screen precisely.
+		const content = this.element.querySelector(".pipboy-content");
+		if (!content) return;
+		content.appendChild(flyout);
+		const cRect = content.getBoundingClientRect();
+		const hRect = host.getBoundingClientRect();
+		const fRect = flyout.getBoundingClientRect();
+		// Clamp horizontally to the pane's visible text column (clientWidth
+		// excludes its scrollbar), not the full screen glass.
+		const pane = host.closest(".pip-pane") ?? content;
+		const pRect = pane.getBoundingClientRect();
+		const minLeft = (pRect.left - cRect.left) + 2;
+		const maxRight = (pRect.left - cRect.left) + pane.clientWidth - 2;
+		let left = (hRect.left - cRect.left) + hRect.width / 2 - fRect.width / 2;
+		left = Math.max(minLeft, Math.min(left, maxRight - fRect.width));
+		let top = (hRect.bottom - cRect.top) + 4;
+		// Not enough room below the host: open upward instead.
+		if (top + fRect.height > cRect.height - 6) {
+			top = (hRect.top - cRect.top) - fRect.height - 4;
+		}
+		flyout.style.left = `${left}px`;
+		flyout.style.top = `${top}px`;
+
+		// Suppress the "Right-click to edit" tooltip while the fly-out is open —
+		// hovering the fly-out re-anchors it on top of the input otherwise.
+		const tooltipText = host.dataset.tooltip;
+		if (tooltipText) {
+			delete host.dataset.tooltip;
+			game.tooltip?.deactivate?.();
+		}
+
+		const input = flyout.querySelector("input");
+		const onDocDown = (event) => {
+			if (!flyout.contains(event.target)) this.#closeEditFlyout();
+		};
+		document.addEventListener("pointerdown", onDocDown, true);
+		this.#editHost = host;
+		this.#editFlyoutCleanup = () => {
+			document.removeEventListener("pointerdown", onDocDown, true);
+			if (tooltipText && host.isConnected) host.dataset.tooltip = tooltipText;
+			flyout.remove();
+			this.#editHost = null;
+		};
+
+		const commit = async () => {
+			let value = Math.max(Number(min), Number(input.value));
+			if (max != null) value = Math.min(Number(max), value);
+			this.#closeEditFlyout();
+			if (!Number.isFinite(value) || value === current) return;
+			PipBoyApp.playSound("select");
+			await doc.update({ [path]: value });
+		};
+		flyout.querySelector(".pip-edit-ok").addEventListener("click", commit);
+		// Keep clicks inside the fly-out from triggering the host's own actions.
+		flyout.addEventListener("click", (event) => event.stopPropagation());
+		flyout.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+		});
+		input.addEventListener("keydown", (event) => {
+			if (event.key === "Enter") {
+				event.preventDefault();
+				commit();
+			} else if (event.key === "Escape") {
+				event.stopPropagation();
+				this.#closeEditFlyout();
+			}
+		});
+		input.focus();
+		input.select();
+	}
+
+	/** Right-click context menu for an inventory item: Drop / Transfer / Delete. */
+	#openItemMenu(row, event) {
+		this.#closeEditFlyout();
+		const item = this.actor.items.get(row.dataset.itemId);
+		if (!item) return;
+
+		const menu = document.createElement("div");
+		menu.className = "pip-context-menu";
+		menu.innerHTML = `
+			<div class="pip-menu-title">${item.name}</div>
+			<button type="button" data-menu="drop"><i class="fas fa-hand-holding"></i> Drop</button>
+			<button type="button" data-menu="transfer"><i class="fas fa-people-arrows"></i> Transfer&hellip;</button>
+			<button type="button" data-menu="delete"><i class="fas fa-trash"></i> Delete&hellip;</button>`;
+
+		const content = this.element.querySelector(".pipboy-content");
+		if (!content) return;
+		content.appendChild(menu);
+		// Place at the cursor, clamped to the pane's text column (same rules as
+		// the edit fly-out).
+		const cRect = content.getBoundingClientRect();
+		const mRect = menu.getBoundingClientRect();
+		const pane = row.closest(".pip-pane") ?? content;
+		const pRect = pane.getBoundingClientRect();
+		const minLeft = (pRect.left - cRect.left) + 2;
+		const maxRight = (pRect.left - cRect.left) + pane.clientWidth - 2;
+		let left = event.clientX - cRect.left;
+		left = Math.max(minLeft, Math.min(left, maxRight - mRect.width));
+		let top = event.clientY - cRect.top + 2;
+		if (top + mRect.height > cRect.height - 6) top = Math.max(6, top - mRect.height - 4);
+		menu.style.left = `${left}px`;
+		menu.style.top = `${top}px`;
+
+		const onDocDown = (ev) => {
+			if (!menu.contains(ev.target)) this.#closeEditFlyout();
+		};
+		document.addEventListener("pointerdown", onDocDown, true);
+		this.#editFlyoutCleanup = () => {
+			document.removeEventListener("pointerdown", onDocDown, true);
+			menu.remove();
+		};
+
+		menu.addEventListener("contextmenu", (ev) => ev.preventDefault());
+		menu.addEventListener("click", async (ev) => {
+			ev.stopPropagation();
+			const action = ev.target.closest("[data-menu]")?.dataset.menu;
+			if (!action) return;
+			this.#closeEditFlyout();
+			PipBoyApp.playSound("select");
+			if (action === "drop") await this.#dropItem(item);
+			else if (action === "transfer") await this.#transferItem(item);
+			else if (action === "delete") await this.#deleteItem(item);
+		});
+	}
+
+	/** Drop: remove the item, announcing it in chat so the GM can place it. */
+	async #dropItem(item) {
+		const qty = item.system?.quantity;
+		await ChatMessage.create({
+			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+			content: `<p><strong>${this.actor.name}</strong> drops <strong>${item.name}</strong>`
+				+ `${typeof qty === "number" && qty > 1 ? ` (×${qty})` : ""}.</p>`,
+		});
+		await item.delete();
+	}
+
+	/** Delete: silent removal, guarded by a confirmation dialog. */
+	async #deleteItem(item) {
+		const confirmed = await foundry.applications.api.DialogV2.confirm({
+			window: { title: "Delete Item" },
+			content: `<p>Delete <strong>${item.name}</strong> from ${this.actor.name}? This cannot be undone.</p>`,
+			rejectClose: false,
+		});
+		if (confirmed) await item.delete();
+	}
+
+	/** Transfer: move the item to another player character. Falls back to a
+	 *  GM-executed socket request when the user can't modify the target. */
+	async #transferItem(item) {
+		const targets = game.actors.filter((a) =>
+			a.type === "character" && a.id !== this.actor.id && a.hasPlayerOwner);
+		if (!targets.length) {
+			ui.notifications?.warn("No other player characters to transfer to.");
+			return;
+		}
+		const options = targets
+			.map((a) => `<option value="${a.id}">${foundry.utils.escapeHTML(a.name)}</option>`)
+			.join("");
+		const targetId = await foundry.applications.api.DialogV2.prompt({
+			window: { title: `Transfer ${item.name}` },
+			content: `<div class="form-group"><label>Transfer to</label>
+				<select name="target">${options}</select></div>`,
+			ok: {
+				label: "Transfer",
+				callback: (ev, button) => button.form.elements.target.value,
+			},
+			rejectClose: false,
+		});
+		const target = targetId ? game.actors.get(targetId) : null;
+		if (!target) return;
+
+		if (target.isOwner) {
+			await target.createEmbeddedDocuments("Item", [item.toObject()]);
+			await ChatMessage.create({
+				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+				content: `<p><strong>${this.actor.name}</strong> gives <strong>${item.name}</strong> to <strong>${target.name}</strong>.</p>`,
+			});
+			await item.delete();
+		} else {
+			// Players can't create items on actors they don't own; ask the
+			// active GM's client to perform the move.
+			if (!game.users.activeGM) {
+				ui.notifications?.warn("A GM must be online to transfer items to another player.");
+				return;
+			}
+			game.socket.emit(`module.${MODULE_ID}`, {
+				action: "transferItem",
+				sourceActorId: this.actor.id,
+				targetActorId: target.id,
+				itemId: item.id,
+				userId: game.user.id,
+			});
+			ui.notifications?.info(`Transfer of ${item.name} sent to the GM.`);
+		}
 	}
 
 	#applyActiveTab(root) {
@@ -996,6 +1304,22 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onRecenterMap() {
 		this.#mapView = { zoom: null, panX: 0, panY: 0 };
 		this.#layoutMap();
+	}
+
+	/** POWER button on a power-armor frame: toggle `powered` on the frame and
+	 *  every piece attached to it — mirroring the system sheet's behaviour, so
+	 *  resistances and outfitted locations recalculate the same way. */
+	static async #onTogglePaPower(event, target) {
+		event.stopPropagation();
+		const frame = this.actor.items.get(target.dataset.itemId);
+		if (!frame || frame.system?.powerArmor?.isFrame !== true) return;
+		const newValue = !frame.system.powerArmor.powered;
+		const updateData = [{ _id: frame.id, "system.powerArmor.powered": newValue }];
+		for (const attachment of this.actor.items.filter((i) => i.type === "apparel"
+			&& i.system?.powerArmor?.frameId === frame.id)) {
+			updateData.push({ _id: attachment.id, "system.powerArmor.powered": newValue });
+		}
+		await Item.updateDocuments(updateData, { parent: this.actor });
 	}
 
 	/** +/- on a power-armor piece: adjust the apparel item's own health. */

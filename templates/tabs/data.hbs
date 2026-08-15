@@ -2,8 +2,10 @@
 <div class="pip-data">
 
 	<div class="pip-inv-summary">
-		<span>LEVEL {{data.level}}</span>
-		<span>XP {{data.currentXP}}{{#if data.nextLevelXP}} / {{data.nextLevelXP}}{{/if}}</span>
+		<span class="pip-editable" data-edit-path="system.level.value" data-edit-label="LEVEL"
+			data-edit-min="1" data-tooltip="Right-click to edit">LEVEL {{data.level}}</span>
+		<span class="pip-editable" data-edit-path="system.level.currentXP" data-edit-label="CURRENT XP"
+			data-tooltip="Right-click to edit">XP {{data.currentXP}}{{#if data.nextLevelXP}} / {{data.nextLevelXP}}{{/if}}</span>
 	</div>
 	{{#if data.origin}}<div class="pip-origin">Origin: {{data.origin}}</div>{{/if}}
 

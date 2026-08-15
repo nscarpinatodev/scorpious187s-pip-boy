@@ -18,9 +18,12 @@
 	<div class="pip-vitals">
 		<div class="pip-vital"><span class="pip-vital-val">{{status.defense}}</span><span class="pip-vital-key">DEF</span></div>
 		<div class="pip-vital"><span class="pip-vital-val">{{status.initiative}}</span><span class="pip-vital-key">INIT</span></div>
-		<div class="pip-vital"><span class="pip-vital-val">{{status.radiation}}</span><span class="pip-vital-key">RADS</span></div>
-		<div class="pip-vital"><span class="pip-vital-val">{{status.luckPoints}}</span><span class="pip-vital-key">LUCK</span></div>
-		<div class="pip-vital"><span class="pip-vital-val">{{status.caps}}</span><span class="pip-vital-key">CAPS</span></div>
+		<div class="pip-vital pip-editable" data-edit-path="system.radiation" data-edit-label="RADS"
+			data-tooltip="Right-click to edit"><span class="pip-vital-val">{{status.radiation}}</span><span class="pip-vital-key">RADS</span></div>
+		<div class="pip-vital pip-editable" data-edit-path="system.luckPoints" data-edit-label="LUCK POINTS"
+			data-tooltip="Right-click to edit"><span class="pip-vital-val">{{status.luckPoints}}</span><span class="pip-vital-key">LUCK</span></div>
+		<div class="pip-vital pip-editable" data-edit-path="system.currency.caps" data-edit-label="CAPS"
+			data-tooltip="Right-click to edit"><span class="pip-vital-val">{{status.caps}}</span><span class="pip-vital-key">CAPS</span></div>
 		<div class="pip-vital{{#if status.carryWeight.level}} pip-encumbered{{/if}}" data-tooltip="Carried / capacity"><span class="pip-vital-val">{{status.carryWeight.current}}/{{status.carryWeight.max}}</span><span class="pip-vital-key">WT</span></div>
 	</div>
 
@@ -48,11 +51,21 @@
 		</div>
 	</div>
 
-	{{#if status.powerArmor.length}}
+	{{#if status.powerArmor.available}}
 	<h3 class="pip-section-title">POWER ARMOR</h3>
 	<div class="pip-pa">
-		{{#each status.powerArmor}}
-		<div class="pip-pa-row" data-tooltip="{{name}}">
+		{{#each status.powerArmor.frames}}
+		<div class="pip-pa-frame">
+			<span class="pip-pa-name" data-tooltip="{{name}}">{{name}}</span>
+			<button type="button" class="pip-pa-power{{#if powered}} on{{/if}}" data-action="togglePaPower"
+				data-item-id="{{id}}" data-tooltip="{{#if powered}}Power down{{else}}Power up{{/if}}">
+				<i class="fas fa-power-off"></i> {{#if powered}}POWERED{{else}}OFFLINE{{/if}}
+			</button>
+		</div>
+		{{/each}}
+		{{#each status.powerArmor.pieces}}
+		<div class="pip-pa-row pip-editable" data-edit-item-id="{{itemId}}" data-edit-path="system.health.value"
+			data-edit-label="{{label}} HP" data-edit-max="{{max}}" data-tooltip="{{name}} — right-click to edit">
 			<span class="pip-pa-loc">{{label}}</span>
 			<div class="pip-bar pip-pa-bar"><div class="pip-bar-fill" style="width:{{pct}}%"></div></div>
 			<span class="pip-hp-controls">
@@ -93,7 +106,8 @@
 	<h3 class="pip-section-title">NEEDS</h3>
 	<div class="pip-needs">
 		{{#each status.conditions}}
-		<div class="pip-need">
+		<div class="pip-need{{#if editPath}} pip-editable{{/if}}"{{#if editPath}}
+			data-edit-path="{{editPath}}" data-edit-label="{{editLabel}}" data-tooltip="Right-click to edit"{{/if}}>
 			<span>{{label}}</span>
 			{{#if options}}
 			<select class="pip-need-select" data-key="{{key}}">

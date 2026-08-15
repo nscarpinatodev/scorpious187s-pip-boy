@@ -79,6 +79,11 @@ Scene tiles can be shown on either view: tick **"Show on Pip-Boy map"** in a
 tile's configuration and it is drawn on the map in scene coordinates, taking the
 phosphor treatment along with the scene image. Hidden tiles are never shown.
 
+**RADS**, **LUCK**, **CAPS**, **Fatigue**, **Intoxication**, and power-armor
+piece health (plus **LEVEL** / **current XP** on the DATA tab) are editable
+from the Pip-Boy — right-click one to open a fly-out editor. Equipped
+power-armor frames show a **POWERED/OFFLINE** toggle that powers the frame and
+its attached pieces together.
 The STATUS tab also shows **per-limb resistances** (Phys / Energy / Rad / Poison,
 armour included), a **Power Armor health monitor** for equipped powered pieces
 (−/+ to damage/repair), and **NEEDS selectors** — hunger, thirst, and sleep are
@@ -104,6 +109,13 @@ diagnostics, the PIP-OS(R) readout, and a blinking cursor — timed to the
 activation sound. Click the screen to skip, or disable it per-client in
 Module Settings. Provide your own files only — this module does not ship or
 endorse redistributing copyrighted game audio.
+
+### Drag & drop
+Drop an Item onto the Pip-Boy — from the sidebar, a compendium, or another
+sheet — and it's added to the character, exactly like dropping it on the
+character sheet. Right-click an inventory item for **Drop** (announced in
+chat), **Transfer** to another player character (GM online required when you
+don't own the target), or **Delete** (confirmed).
 
 ### Lower readout
 Clicking an item, perk, or trait (or rolling a skill) shows its **description** in

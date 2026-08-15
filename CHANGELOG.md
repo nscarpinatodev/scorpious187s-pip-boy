@@ -3,6 +3,32 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.0] — 2026-08-14
+
+### Added
+
+- **Right-click editing** — RADS, LUCK, and CAPS on the STATUS tab, Fatigue and
+  Intoxication in NEEDS, power-armor piece health, and LEVEL and current XP on
+  the DATA tab can now be edited from the Pip-Boy: right-click opens a fly-out
+  with a number input (Enter or ✓ applies, Escape or clicking elsewhere
+  cancels). The XP threshold shown after current XP stays display-only (the
+  system derives it from character level).
+- **Inventory context menu** — right-click an item on the INV tab for
+  **Drop** (removes it and announces it in chat so the GM can place it),
+  **Transfer** (move it to another player character — handled via the GM's
+  client when you don't own the target, so a GM must be online for
+  cross-player transfers), and **Delete** (with confirmation).
+- **Drag-and-drop items** — dropping an Item onto the Pip-Boy (from the items
+  sidebar, a compendium, or another actor's sheet) adds a copy to the
+  character, just like dropping it on the character sheet. Dropping the
+  actor's own items back onto it is ignored rather than duplicating them.
+- **Power-armor frame power toggle** — equipped frames now show in the POWER
+  ARMOR section with a POWERED/OFFLINE button that powers the frame and all
+  attached pieces on or off (the same cascade the character sheet performs).
+  The frame row stays visible while unpowered, so armor can be powered back up
+  from the Pip-Boy even though unpowered pieces drop out of the health monitor
+  and resistances.
+
 ## [0.4.0] — 2026-08-14
 
 ### Added

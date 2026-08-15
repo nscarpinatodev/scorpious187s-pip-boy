@@ -156,6 +156,26 @@ Hooks.once("ready", () => {
 	}
 	// Discover any GM-provided replacement sounds.
 	PipBoyApp.probeCustomSounds();
+
+	// Cross-player item transfers: players can't create items on actors they
+	// don't own, so the active GM's client executes the move on their behalf.
+	game.socket.on(`module.${MODULE_ID}`, async (msg) => {
+		if (msg?.action !== "transferItem") return;
+		if (!game.users.activeGM?.isSelf) return; // exactly one executor
+		const source = game.actors.get(msg.sourceActorId);
+		const target = game.actors.get(msg.targetActorId);
+		const item = source?.items.get(msg.itemId);
+		const requester = game.users.get(msg.userId);
+		if (!source || !target || !item || !requester) return;
+		// The requester must own the actor the item is leaving.
+		if (!source.testUserPermission(requester, "OWNER")) return;
+		await target.createEmbeddedDocuments("Item", [item.toObject()]);
+		await ChatMessage.create({
+			speaker: ChatMessage.getSpeaker({ actor: source }),
+			content: `<p><strong>${source.name}</strong> gives <strong>${item.name}</strong> to <strong>${target.name}</strong>.</p>`,
+		});
+		await item.delete();
+	});
 });
 
 // Token HUD launch button.
