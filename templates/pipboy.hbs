@@ -1,6 +1,7 @@
 {{!-- Scorpious187's Pip Boy — main shell. The casing PNG is the backdrop; the
       CRT screen content is inset over the transparent cutout. --}}
-<div class="pipboy-frame pip-tint-{{frameColor}}" style="--pip-frame-src:url('{{frameSrc}}')">
+<div class="pipboy-frame pip-tint-{{frameColor}}"
+	style="--pip-frame-src:url('{{frameSrc}}'); --pip-ui-scale:{{uiScale}}">
 	<div class="pipboy-screen">
 		<div class="pipboy-glass"></div>
 		{{#if showScanlines}}<div class="pipboy-scanlines"></div>{{/if}}

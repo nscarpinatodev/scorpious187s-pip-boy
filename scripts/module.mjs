@@ -1,6 +1,7 @@
 import { MODULE_ID, FRAME_COLORS } from "./constants.mjs";
 import { PipBoyApp } from "./PipBoyApp.mjs";
 import { PipBoyRadio } from "./radio.mjs";
+import { PipBoyVats } from "./vats.mjs";
 import { WorldMapConfig } from "./WorldMapConfig.mjs";
 import { registerTokenHudButton } from "./token-hud.mjs";
 
@@ -34,6 +35,27 @@ Hooks.once("init", async () => {
 		onChange: () => {
 			for (const app of foundry.applications.instances.values()) {
 				if (app instanceof PipBoyApp) app.render();
+			}
+		},
+	});
+
+	game.settings.register(MODULE_ID, "uiScale", {
+		name: "Pip-Boy Size",
+		hint: "Scales the whole Pip-Boy window and its text. 115% is the default; raise it "
+			+ "further if players find the screen hard to read.",
+		scope: "client",
+		config: true,
+		type: Number,
+		default: 1.15,
+		choices: {
+			1: "100%",
+			1.15: "115% (default)",
+			1.3: "130%",
+			1.5: "150%",
+		},
+		onChange: () => {
+			for (const app of foundry.applications.instances.values()) {
+				if (app instanceof PipBoyApp) app.applyUiScale();
 			}
 		},
 	});
@@ -84,6 +106,85 @@ Hooks.once("init", async () => {
 		onChange: () => PipBoyApp.probeCustomSounds(),
 	});
 
+	game.settings.register(MODULE_ID, "vatsMode", {
+		name: "V.A.T.S. Damage Automation",
+		hint: "Adds a V.A.T.S. block to fallout damage cards: per-target damage-resistance "
+			+ "math for the rolled hit location, with GM-only apply buttons and undo.",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "cards",
+		choices: {
+			off: "Off",
+			cards: "Damage cards with GM apply buttons",
+		},
+	});
+
+	game.settings.register(MODULE_ID, "actionTracking", {
+		name: "Major / Minor Action Tracking",
+		hint: "Show action pips on the STATUS tab. Attacking spends the major action, and "
+			+ "extra actions can be bought with AP (2 for a major, 1 for a minor). Actions "
+			+ "reset when the combat round advances.",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "vatsPaAblation", {
+		name: "V.A.T.S.: Power Armor Ablation",
+		hint: "Damage to a location covered by powered power armor reduces that piece's "
+			+ "health first; only the overflow reaches the wearer.",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "vatsBuyDice", {
+		name: "V.A.T.S.: Buy Bonus Dice with AP",
+		hint: "Before an attack rolled from the Pip-Boy, offer to spend AP on bonus d20s "
+			+ "and deduct the cost from the pool.",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "vatsDiceCost", {
+		name: "V.A.T.S.: Bonus Dice AP Cost",
+		hint: "Escalating charges 1 AP for the first bonus die, 2 for the second, 3 for the "
+			+ "third (1/3/6 total). Flat charges 1 AP per die. Check against your book.",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "escalating",
+		choices: {
+			escalating: "Escalating — 1 / 3 / 6 total",
+			flat: "Flat — 1 AP per die",
+		},
+	});
+
+	game.settings.register(MODULE_ID, "vatsInjuries", {
+		name: "V.A.T.S.: Injury Prompts",
+		hint: "When applied damage is 5+ to one location or reduces the target to 0 HP, "
+			+ "prompt the GM to mark an open injury on that limb.",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "vatsAutoDamage", {
+		name: "V.A.T.S.: Auto-Roll Damage",
+		hint: "After an attack is rolled from the Pip-Boy, immediately open the damage dialog "
+			+ "(rate of fire, extra dice, ammo) so the flow runs attack → damage → apply.",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
 	game.settings.register(MODULE_ID, "radioFolder", {
 		name: "Radio Station Folder",
 		hint: "Playlists inside a playlist folder with this name appear as stations on the "
@@ -98,6 +199,23 @@ Hooks.once("init", async () => {
 	});
 	game.settings.register(MODULE_ID, "uiVolume", {
 		scope: "client", config: false, type: Number, default: 0.8,
+	});
+
+	game.settings.register(MODULE_ID, "lightBright", {
+		name: "Pip-Boy Light: Bright Radius",
+		hint: "Bright-light radius of the Pip-Boy token light, in scene distance units.",
+		scope: "world",
+		config: true,
+		type: Number,
+		default: 10,
+	});
+	game.settings.register(MODULE_ID, "lightDim", {
+		name: "Pip-Boy Light: Dim Radius",
+		hint: "Dim-light radius of the Pip-Boy token light, in scene distance units.",
+		scope: "world",
+		config: true,
+		type: Number,
+		default: 20,
 	});
 
 	game.settings.register(MODULE_ID, "lightColor", {
@@ -160,8 +278,20 @@ Hooks.once("ready", () => {
 	// Cross-player item transfers: players can't create items on actors they
 	// don't own, so the active GM's client executes the move on their behalf.
 	game.socket.on(`module.${MODULE_ID}`, async (msg) => {
-		if (msg?.action !== "transferItem") return;
 		if (!game.users.activeGM?.isSelf) return; // exactly one executor
+
+		// Dropping to the canvas needs token/actor creation rights.
+		if (msg?.action === "dropItem") {
+			const source = await fromUuid(msg.actorUuid);
+			const actor = source?.actor ?? source;
+			const requester = game.users.get(msg.userId);
+			if (!actor || !requester) return;
+			if (!actor.testUserPermission(requester, "OWNER")) return;
+			await PipBoyApp.dropToGround(msg);
+			return;
+		}
+
+		if (msg?.action !== "transferItem") return;
 		const source = game.actors.get(msg.sourceActorId);
 		const target = game.actors.get(msg.targetActorId);
 		const item = source?.items.get(msg.itemId);
@@ -180,6 +310,14 @@ Hooks.once("ready", () => {
 
 // Token HUD launch button.
 Hooks.on("renderTokenHUD", registerTokenHudButton);
+
+// V.A.T.S. — stamp targets onto fallout roll cards at creation (rolling client
+// only) and add the damage-application block when cards render.
+Hooks.on("preCreateChatMessage", (message) => PipBoyVats.onPreCreateChatMessage(message));
+Hooks.on("renderChatMessageHTML", (message, html) =>
+	PipBoyVats.onRenderChatMessageHTML(message, html instanceof HTMLElement ? html : html?.[0]));
+// Persistent-damage prompts as each combatant's turn ends (GM client).
+Hooks.on("combatTurnChange", (combat, prior) => PipBoyVats.onCombatTurnChange(combat, prior));
 
 // Keep any open Pip-Boy in sync with live actor / item changes.
 Hooks.on("updateActor", (actor) => PipBoyApp.refreshFor(actor));

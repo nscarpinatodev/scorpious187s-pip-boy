@@ -3,6 +3,109 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-08-15
+
+### Added
+
+- **V.A.T.S. damage automation (Phase 1)** — the roller's targets are stamped
+  onto fallout roll cards, and damage cards gain a V.A.T.S. block: one row per
+  target showing the damage-resistance math for the rolled hit location and
+  damage type (Piercing X honoured; Radioactive adds rads, reduced by the
+  location's radiation resistance), with GM-only
+  APPLY / APPLY TO ALL buttons and an UNDO on each outcome card. World setting
+  to turn it off.
+- **V.A.T.S. HIT/MISS verdicts** — attack cards show successes vs a difficulty
+  that defaults to the **targeted actor's Defense rating** (highest, when
+  several targets are marked; tagged DEF on the card) and can be overridden by
+  the GM right on the card, with a HIT or MISS badge and excess successes shown
+  as AP. **Re-roll cards get their own verdict strip** — they inherit the
+  original attack's hit location, targets, and difficulty, and the latest roll
+  of an attack is the one damage cards link to. Damage cards linked to a missed
+  attack carry an "ATTACK MISSED" warning (apply stays available as an
+  override).
+- **V.A.T.S. injury prompts** — when applied damage is 5+ to one location or
+  drops the target to 0 HP, the GM is prompted to mark an open injury on that
+  limb; UNDO restores injuries along with HP and rads. Characters and robots
+  get an injury slot (as on their sheets); NPCs and creatures get their
+  sheet's open-injury count incremented instead. World setting to disable.
+- **V.A.T.S. AP banking** — on a hit with excess successes, the roller (or GM)
+  can bank them into the system's AP tracker with one click on the attack card.
+  Player attacks feed the party pool; GM-rolled attacks feed the GM pool. Each
+  card banks once.
+- **V.A.T.S. conditions (Phase 3)** — Stun weapons that roll Effects prompt the
+  GM to apply the Stunned status; Persistent weapons prompt the GM to track
+  recurring damage — the weapon's damage repeating at the **end** of each of
+  the target's next N turns (N = Effects rolled), through damage resistance,
+  with APPLY / END EFFECT prompts and automatic expiry when the duration runs
+  out. Burst, Spread, Breaking,
+  Freeze, Arc, and Tranquilize show reminder chips on the damage card for GM
+  adjudication. UNDO clears applied conditions too.
+- **V.A.T.S. power-armor ablation** — damage to a location covered by powered
+  power armor reduces that piece's health first, and only the overflow reaches
+  the wearer. The damage card shows the split ("armor soaks 5 (8→3) → wearer
+  0"), the outcome card reports the piece's health and flags a breach at 0, and
+  UNDO restores the piece. World setting to disable.
+- **V.A.T.S. bonus dice for AP** — attacks *and damage rolls* made from the
+  Pip-Boy first offer to buy extra dice with AP (d20s for attacks, combat dice
+  for damage), showing the pool balance and only listing what's affordable. The
+  cost is deducted from the party (or GM) pool and announced in chat. Bought
+  damage dice are primed into the roll dialog's Extra Dice field, which the
+  system excludes from its ammunition maths, so they cost AP and not ammo. Cost
+  model for attack dice is configurable — escalating 1/3/6 by default, or flat.
+  Damage dice follow the rules by weapon class: melee, unarmed, and thrown
+  weapons spend up to 3 AP at +1 DC each, while ranged weapons buy extra DC
+  with **ammunition** through the system's Fire Rate selector and are not
+  offered an AP purchase at all.
+- **AIM minor action** — an AIM button beside the action pips spends the minor
+  action and marks the character as aiming until their next attack, lighting up
+  while active and clearing when the attack is rolled or the round advances. An
+  **Accurate** weapon fired while aiming buys bonus damage at the rules' flat
+  rate (1 AP per +1 DC, up to 3) instead of with ammunition.
+- **Major / minor action tracking** — action pips on the STATUS tab (MAJOR
+  shown as two dots, MINOR as one) that dim as they're spent and reset when the
+  combat round advances. Attacking spends the major action; when none remains,
+  the Pip-Boy offers to buy another with AP (2 for a major, 1 for a minor),
+  deducting from the party or GM pool and announcing it in chat. Warns rather
+  than blocks if the purchase is declined. World setting to disable.
+- **FAVORITES on the STATUS tab** — weapons and consumables flagged as
+  favourites get their own section, split into WEAPONS (attack / damage
+  buttons) and CONSUMABLES (use button, quantity shown), for quick access
+  without leaving STATUS. Favourites can be managed entirely from the Pip-Boy:
+  the inventory right-click menu gains **Favorite / Unfavorite** for weapons
+  and consumables, favourited rows are starred in the inventory list, and each
+  FAVORITES row has a star button to drop it again. Uses the same
+  `system.favorite` flag as the character sheet, so the two stay in sync.
+- **Add items from the compendiums** — an **ADD ITEM** button on the INV tab
+  opens the fallout system's own item-type menu and compendium browser, adding
+  the chosen item straight to the character (the character sheet's flow,
+  reproduced in the Pip-Boy).
+- **Pip-Boy size setting** — a per-client scale for the whole Pip-Boy window
+  and its text (100% / 115% / 130% / 150%), defaulting to **115%** after
+  players reported the screen being hard to read. Layout inside the casing is
+  percentage-based, so the artwork, controls, and type all scale together.
+- **Pip-Boy light distances** — new world settings for the light's bright and
+  dim radii (defaults 10 / 20 scene units).
+
+### Changed
+
+- **Drop now puts items on the ground** — the inventory context menu's Drop
+  creates an **Item Pile** at your token instead of deleting the item. Piles are
+  backed by a single module-owned `npc` actor with real health, so no 0 HP
+  character actors accumulate in the directory, and player drops are executed by
+  the GM's client. With no token on the scene (or without the Item Piles module)
+  the item is unequipped and kept — dropping never destroys anything.
+- **V.A.T.S. card layout and styling** — cards are now a self-contained
+  terminal panel laid out over two rows (identity and verdict on top, the
+  maths and controls beneath) so they read in a narrow chat sidebar. All
+  colours, buttons, and selects are set explicitly from the block's own tokens
+  rather than inherited, hardened against chat restyling by UI modules such as
+  Carolingian UI.
+- **V.A.T.S. auto-damage chaining** — after an attack rolled from the Pip-Boy,
+  the damage dialog (rate of fire, extra dice, ammo) opens automatically, so a
+  full exchange runs attack → damage → apply. Missed attacks don't chain
+  (damage can still be rolled manually if the GM overrules the verdict).
+  World setting to disable.
+
 ## [1.0.0] — 2026-08-14
 
 ### Added

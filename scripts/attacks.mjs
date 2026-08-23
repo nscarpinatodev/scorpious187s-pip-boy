@@ -1,3 +1,6 @@
+import { MODULE_ID } from "./constants.mjs";
+import { PipBoyVats } from "./vats.mjs";
+
 /**
  * Weapon attack rolls for the Pip-Boy.
  *
@@ -10,7 +13,7 @@
  * @param {Actor} actor  The character making the attack.
  * @param {Item}  item   The weapon item.
  */
-export async function rollWeaponAttack(actor, item) {
+export async function rollWeaponAttack(actor, item, { aiming = false } = {}) {
 	if (!actor || !item || item.type !== "weapon") return;
 
 	if (item.isWeaponBroken) {
@@ -71,10 +74,16 @@ export async function rollWeaponAttack(actor, item) {
 	let complication = parseInt(actor.system.complication);
 	if (item.system.damage.weaponQuality.unreliable.value) complication -= 1;
 
+	// --- optionally spend AP on bonus dice -------------------------------
+	const diceNum = await PipBoyVats.promptBuyDice();
+	if (diceNum === null) return; // cancelled at the AP prompt
+
 	// --- hand off to the system roller -----------------------------------
-	fallout.Dialog2d20.createDialog({
+	// The dialog's promise resolves with the roll result once the player has
+	// actually rolled (null if they close the dialog without rolling).
+	const result = await fallout.Dialog2d20.createDialog({
 		rollName: item.name,
-		diceNum: 2,
+		diceNum,
 		attribute: attribute.value,
 		skill: skill.value,
 		tag: skill.tag,
@@ -83,6 +92,16 @@ export async function rollWeaponAttack(actor, item) {
 		actor,
 		item,
 	});
+
+	// V.A.T.S.: chain straight into the damage dialog (rate of fire, extra
+	// dice, ammo) so the flow is attack → damage → apply without re-clicking.
+	// Misses (per the initial verdict — target Defense or vs 1) don't chain;
+	// damage can still be rolled manually if the GM overrules the difficulty.
+	if (result && game.settings.get(MODULE_ID, "vatsAutoDamage")) {
+		const shouldChain = !PipBoyVats.enabled
+			|| PipBoyVats.quickVerdict(result.dicesRolled).hit;
+		if (shouldChain) rollWeaponDamage(actor, item, { aiming });
+	}
 }
 
 /**
@@ -93,7 +112,7 @@ export async function rollWeaponAttack(actor, item) {
  * @param {Actor} actor  The character rolling damage.
  * @param {Item}  item   The weapon item.
  */
-export async function rollWeaponDamage(actor, item) {
+export async function rollWeaponDamage(actor, item, { aiming = false } = {}) {
 	if (!actor || !item || item.type !== "weapon") return;
 
 	if (item.isWeaponBroken) {
@@ -104,9 +123,42 @@ export async function rollWeaponDamage(actor, item) {
 
 	const actorUUID = actor.token ? actor.token.uuid : actor.uuid;
 
+	// Optionally spend AP on bonus combat dice. They're primed into the
+	// dialog's "Extra Dice" field, which the system excludes from its ammo
+	// maths — AP-bought dice cost AP, not ammunition.
+	//
+	// Increasing damage dice, per the rules:
+	//   Ranged  — spend extra ammunition, +1 DC per round, capped by Fire Rate.
+	//             That's the system dialog's own Fire Rate selector, which
+	//             charges the ammo; no AP purchase is offered.
+	//   Melee, unarmed and thrown — spend up to 3 AP, +1 DC per AP (flat).
+	// The one exception is an Accurate weapon fired after Aiming, which buys
+	// damage at the same flat rate and locks out ammunition-bought dice.
+	const base = item.currentWeaponDamage;
+	const apWeapon = ["meleeWeapons", "unarmed", "throwing"]
+		.includes(item.system?.weaponType);
+	const accurateAimed = aiming
+		&& item.system?.damage?.weaponQuality?.accurate?.value === true;
+	const fireRate = Number(item.system?.fireRate) || 0;
+
+	if (apWeapon || accurateAimed) {
+		const note = accurateAimed && !apWeapon
+			? "Accurate + Aim: 1 AP per +1 DC (max 3). Don't also spend ammunition for damage."
+			: "1 AP per +1 DC, up to 3.";
+		// Always flat: 1 AP per die, whether from the weapon class or Accurate.
+		const total = await PipBoyVats.promptBuyDice({
+			kind: "damage", base, flat: true, max: 3, note,
+		});
+		if (total === null) return; // cancelled at the AP prompt
+		PipBoyVats.primeExtraDice(total - base);
+	} else if (fireRate > 0) {
+		ui.notifications?.info(
+			`${item.name}: buy up to ${fireRate} extra DC with ammunition using Fire Rate.`);
+	}
+
 	fallout.DialogD6.createDialog({
 		rollName: item.name,
-		diceNum: item.currentWeaponDamage,
+		diceNum: base,
 		actor: actorUUID,
 		weapon: item,
 	});

@@ -47,7 +47,21 @@ from a macro.)
   *none → wounded → crippled*, updating the limb status and figure live.
 - **S.P.E.C.I.A.L.** attributes.
 - **NEEDS** — Hunger, Thirst, and Sleep shown as their descriptive levels
-  (e.g. *Sated*, *Hydrated*, *Rested*), plus Fatigue and Intoxication.
+  (e.g. *Sated*, *Hydrated*, *Rested*) as dropdowns that update the character,
+  plus Fatigue and Intoxication.
+- **Action economy** — MAJOR (two dots) and MINOR (one dot) action pips that dim
+  as they're spent and reset when the combat round advances, plus an **AIM**
+  button. Attacking spends the major action; when none is left the Pip-Boy
+  offers to buy another with AP (2 for a major, 1 for a minor).
+- **FAVORITES** — weapons and consumables starred on the character sheet (or
+  from the Pip-Boy's own right-click menu) get a quick-access section, split
+  into WEAPONS (attack / damage) and CONSUMABLES (use).
+- **POWER ARMOR** — per-location piece health with `−` / `+` and a
+  POWERED / OFFLINE toggle that cascades to every attached piece.
+- **RESISTANCES** — per-limb Physical / Energy / Radiation / Poison, armour
+  included.
+- **Right-click to edit** RADS, LUCK, CAPS, Fatigue, Intoxication, and
+  power-armor piece health (LEVEL and current XP on the DATA tab).
 
 ### INV (inventory) tab
 - Items grouped into **Weapons / Apparel / Aid / Ammo / Misc**, with quantity and
@@ -59,12 +73,18 @@ from a macro.)
 - **Use** on consumables — runs the system's `consumeItem` (quantity, hunger,
   HP/rad healing, effects).
 - Items with **zero quantity are hidden**.
+- **ADD ITEM** opens the fallout system's own compendium browser and adds the
+  chosen item straight to the character.
+- **Right-click** an item for **Favorite / Unfavorite** (weapons and
+  consumables), **Drop**, **Transfer**, or **Delete**.
 
 ### DATA tab
 - **Level & XP**, origin.
 - **Skills** — left-click a skill to roll it against its default attribute;
   **right-click** to reveal a S.P.E.C.I.A.L. picker and roll against any attribute.
 - **Perks** (with rank for multi-rank perks) and **Traits**.
+- **Effects** — active effects from the character and its items: temporary
+  (with remaining duration), passive, and inactive.
 
 ### MAP tab
 Toggle between two modes (each appears when available), with **wheel-zoom**,
@@ -79,17 +99,6 @@ Scene tiles can be shown on either view: tick **"Show on Pip-Boy map"** in a
 tile's configuration and it is drawn on the map in scene coordinates, taking the
 phosphor treatment along with the scene image. Hidden tiles are never shown.
 
-**RADS**, **LUCK**, **CAPS**, **Fatigue**, **Intoxication**, and power-armor
-piece health (plus **LEVEL** / **current XP** on the DATA tab) are editable
-from the Pip-Boy — right-click one to open a fly-out editor. Equipped
-power-armor frames show a **POWERED/OFFLINE** toggle that powers the frame and
-its attached pieces together.
-The STATUS tab also shows **per-limb resistances** (Phys / Energy / Rad / Poison,
-armour included), a **Power Armor health monitor** for equipped powered pieces
-(−/+ to damage/repair), and **NEEDS selectors** — hunger, thirst, and sleep are
-dropdowns that update the character directly. The DATA tab lists **active
-effects** (temporary with duration, passive, and inactive) below traits.
-
 ### RADIO tab
 Playlists inside a playlist folder named **"Pip-Boy Radio"** (configurable)
 appear as stations. Tuning a station plays it **locally only** — every player
@@ -102,20 +111,54 @@ The GM can set a **Custom Sound Folder** (in Foundry user data) holding
 replacement audio for `activate.wav`, `tab.wav`, `select.wav`, `rollover.wav`,
 `zoom.wav`, `radio-on.wav`, `radio-off.wav`, `light-on.wav`, `light-off.wav`,
 and `close.wav`. Missing files fall back to the bundled synthesized sounds.
+Provide your own files only — this module does not ship, and does not endorse
+redistributing, copyrighted game audio.
 
 ### PIP-OS boot screen
 Opening the Pip-Boy plays an FO3-style boot sequence on the CRT — POST
 diagnostics, the PIP-OS(R) readout, and a blinking cursor — timed to the
 activation sound. Click the screen to skip, or disable it per-client in
-Module Settings. Provide your own files only — this module does not ship or
-endorse redistributing copyrighted game audio.
+Module Settings.
 
 ### Drag & drop
 Drop an Item onto the Pip-Boy — from the sidebar, a compendium, or another
 sheet — and it's added to the character, exactly like dropping it on the
-character sheet. Right-click an inventory item for **Drop** (announced in
-chat), **Transfer** to another player character (GM online required when you
-don't own the target), or **Delete** (confirmed).
+character sheet.
+
+Right-click an inventory item for:
+- **Drop** — places the item on the ground at your token as an **Item Pile**
+  (requires the Item Piles module), backed by a single module-owned NPC actor
+  so no 0 HP character actors pile up. Without a token on the scene it simply
+  unequips the item instead; dropping never destroys it.
+- **Transfer** — hand it to another player character (a GM must be online when
+  you don't own the target).
+- **Delete** — with confirmation.
+
+### V.A.T.S. — damage automation
+The Fallout 2d20 system rolls dice but applies nothing. **V.A.T.S.**
+(Vault-Tec Assisted Targeting System) closes that gap by building on the
+system's own chat cards — no system files are patched.
+
+- **Attack cards** gain a verdict strip: successes against a difficulty that
+  defaults to the **target's Defense rating** (GM-overridable per card), a
+  HIT / MISS badge, and a one-click **BANK AP** for excess successes. Re-rolls
+  get their own verdict and inherit the original attack's hit location.
+- **Damage cards** gain an APPLY block showing the maths per target —
+  `damage − DR (hit location, damage type) → final` — honouring **Piercing X**,
+  **Radioactive** (rads through radiation DR), and **power-armor ablation**
+  (a powered piece soaks damage before the wearer). GMs apply per target or to
+  all; every application posts an outcome card with **UNDO**.
+- **Consequences**: injury prompts at 5+ damage to a location or 0 HP (writing
+  the right data for characters, robots, NPCs, and creatures), **Stun** as a
+  status effect, and **Persistent** damage recurring at the end of the target's
+  turns for the rolled number of rounds, expiring on its own.
+- **Roll flow**: attacks rolled from the Pip-Boy chain straight into the damage
+  dialog — and don't chain on a miss.
+- **Bonus dice for AP** — attack d20s at 1 / 3 / 6 cumulative. Damage dice
+  follow the rules by weapon: melee, unarmed, and thrown spend up to 3 AP at
+  +1 DC each, while ranged weapons buy extra DC with **ammunition** via the
+  system's Fire Rate selector. An Accurate weapon fired after **Aim** uses the
+  flat AP rate instead.
 
 ### Lower readout
 Clicking an item, perk, or trait (or rolling a skill) shows its **description** in
@@ -133,6 +176,8 @@ switch tabs or select something new.
   10 bright / 20 dim light on your token, in Fallout Green or your screen
   colour (per-client setting). Switching it off restores the token's previous
   lighting.
+- **Pip-Boy size** *(per client)* — scale the whole window and its text
+  (100 / 115 / 130 / 150%), defaulting to **115%**.
 - **Live updates** from the actor, its items, and token movement.
 - **Per-tab scroll positions are preserved** across re-renders.
 
@@ -140,11 +185,23 @@ switch tabs or select something new.
 
 ## Settings
 
-- **Pip-Boy Frame Colour** *(per client)* — the casing colour; the screen tint
-  follows it.
-- **World Map** *(GM)* — **Game Settings → Configure Settings → Scorpious187's Pip
-  Boy → Configure World Map**: choose the world-map **scene**, the **party token**
-  (an actor all players own), and the map **zoom**.
+Per client:
+- **Pip-Boy Frame Colour** — the casing colour; the screen tint follows it.
+- **Pip-Boy Size** — window and text scale (default 115%).
+- **CRT Scanlines**, **PIP-OS Boot Screen**, **Pip-Boy Sounds** — toggles.
+- **Pip-Boy Light Colour** — Fallout Green, or match your screen colour.
+
+World (GM):
+- **V.A.T.S. Damage Automation**, **Injury Prompts**, **Power-Armor Ablation**,
+  **Auto-Roll Damage**, **Bonus Dice for AP** and its **cost model**.
+- **Major / Minor Action Tracking**.
+- **Pip-Boy Light** bright and dim radii.
+- **Custom Sound Folder** — a folder in your user data holding replacement
+  audio (see *Custom sounds* above).
+- **Radio Folder** — the playlist folder whose playlists become stations.
+- **World Map** — **Game Settings → Configure Settings → Scorpious187's Pip
+  Boy → Configure World Map**: choose the world-map **scene**, the **party
+  token** (an actor all players own), and the map **zoom**.
 
 ---
 

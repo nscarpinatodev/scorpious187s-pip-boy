@@ -57,6 +57,11 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			adjustHp: PipBoyApp.#onAdjustHp,
 			adjustPaHealth: PipBoyApp.#onAdjustPaHealth,
 			togglePaPower: PipBoyApp.#onTogglePaPower,
+			toggleAction: PipBoyApp.#onToggleAction,
+			resetActions: PipBoyApp.#onResetActions,
+			toggleAim: PipBoyApp.#onToggleAim,
+			toggleFavorite: PipBoyApp.#onToggleFavorite,
+			addFromCompendium: PipBoyApp.#onAddFromCompendium,
 			cycleInjury: PipBoyApp.#onCycleInjury,
 			openItem: PipBoyApp.#onOpenItem,
 			showInfo: PipBoyApp.#onShowInfo,
@@ -96,6 +101,22 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	/*  Lifecycle helpers                            */
 	/* -------------------------------------------- */
 
+	/** Client UI scale (1 = 100%). The layout inside the casing is all
+	 *  percentage-based, so scaling the window scales the artwork and controls;
+	 *  the font sizes follow via the --pip-ui-scale custom property. */
+	static get uiScale() {
+		return Number(game.settings.get(MODULE_ID, "uiScale")) || 1;
+	}
+
+	/** Base window width at 100%. */
+	static BASE_WIDTH = 600;
+
+	/** Re-apply the current scale to this window (settings change). */
+	applyUiScale() {
+		this.setPosition({ width: Math.round(PipBoyApp.BASE_WIDTH * PipBoyApp.uiScale) });
+		this.render();
+	}
+
 	/** Open (or focus) the Pip-Boy for an actor. */
 	static open(actor) {
 		if (!actor) {
@@ -108,7 +129,10 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			existing.bringToFront?.();
 			return existing;
 		}
-		const app = new PipBoyApp(actor, { id: `${MODULE_ID}-${actor.id}` });
+		const app = new PipBoyApp(actor, {
+			id: `${MODULE_ID}-${actor.id}`,
+			position: { width: Math.round(PipBoyApp.BASE_WIDTH * PipBoyApp.uiScale) },
+		});
 		PipBoyApp.#instances.set(actor.id, app);
 		app.render({ force: true });
 		return app;
@@ -209,6 +233,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		context.moduleId = MODULE_ID;
 		context.frameColor = game.settings.get(MODULE_ID, "frameColor") ?? "green";
 		context.showScanlines = game.settings.get(MODULE_ID, "scanlines") ?? true;
+		context.uiScale = PipBoyApp.uiScale;
 		// POWER lamp glows while this actor's token light is on.
 		const myToken = canvas?.scene ? this.#findMyToken(canvas.scene) : null;
 		context.lightOn = myToken?.getFlag(MODULE_ID, "lightOn") === true;
@@ -457,8 +482,34 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			available: paFrames.length > 0 || paPieces.length > 0,
 		};
 
+		// Favourites: the system's own per-item `favorite` flag (toggled from
+		// the character sheet's inventory), split for quick access.
+		const favorites = { weapons: [], consumables: [] };
+		for (const item of actor.items) {
+			if (!item.system?.favorite) continue;
+			const isWeapon = item.type === "weapon";
+			const isConsumable = item.type === "consumable";
+			if (!isWeapon && !isConsumable) continue;
+			const quantity = item.system.quantity;
+			if (isConsumable && typeof quantity === "number" && quantity <= 0) continue;
+			(isWeapon ? favorites.weapons : favorites.consumables).push({
+				id: item.id,
+				name: item.name,
+				img: item.img,
+				quantity: quantity ?? null,
+				subtitle: this.#itemSubtitle(item),
+				equipped: item.system.equipped === true,
+			});
+		}
+		for (const list of Object.values(favorites)) {
+			list.sort((a, b) => a.name.localeCompare(b.name));
+		}
+		favorites.any = favorites.weapons.length > 0 || favorites.consumables.length > 0;
+
 		return {
 			health: { value, max, pct },
+			actions: this.#prepareActions(actor),
+			favorites,
 			resistances,
 			powerArmor,
 			radiation: sys.radiation ?? 0,
@@ -478,6 +529,90 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			bodyFigure,
 			conditions: this.#prepareConditions(sys.conditions ?? {}),
 		};
+	}
+
+	/** AP cost of an extra action: a major action costs 2 AP, a minor 1 AP. */
+	static ACTION_COST = { major: 2, minor: 1 };
+
+	/** Remaining actions this round. A character gets one major and one minor
+	 *  action per turn; the stored round stamp makes them reset themselves when
+	 *  the combat round moves on (and outside combat they're always fresh). */
+	#prepareActions(actor) {
+		if (!game.settings.get(MODULE_ID, "actionTracking")) return null;
+		const round = game.combat?.round ?? 0;
+		const stored = actor.getFlag(MODULE_ID, "actions");
+		const fresh = stored?.round !== round;
+		const major = fresh ? 1 : (stored.major ?? 1);
+		const minor = fresh ? 1 : (stored.minor ?? 1);
+		return {
+			round, major, minor,
+			// Aim is a minor action that benefits the NEXT attack; it clears
+			// when that attack is rolled or when the round moves on.
+			aiming: fresh ? false : (stored.aiming === true),
+			majorSpent: major <= 0,
+			minorSpent: minor <= 0,
+			// Only surface a count when extra actions have been bought.
+			majorCount: major > 1 ? major : 0,
+			minorCount: minor > 1 ? minor : 0,
+		};
+	}
+
+	/** Persist remaining actions for this round. */
+	async #setActions(next) {
+		await this.actor.setFlag(MODULE_ID, "actions", {
+			round: game.combat?.round ?? 0,
+			major: Math.max(0, next.major),
+			minor: Math.max(0, next.minor),
+			aiming: next.aiming === true,
+		});
+	}
+
+	/** Is this character currently aiming? (Drives the Accurate quality.) */
+	get isAiming() {
+		return this.#prepareActions(this.actor)?.aiming === true;
+	}
+
+	/** Spend one action of `kind`, offering to buy another with AP when none
+	 *  remain. Resolves true if an action was available (or bought). */
+	async spendAction(kind) {
+		if (!game.settings.get(MODULE_ID, "actionTracking")) return true;
+		const actions = this.#prepareActions(this.actor);
+		if (!actions) return true;
+		if (actions[kind] > 0) {
+			await this.#setActions({ ...actions, [kind]: actions[kind] - 1 });
+			return true;
+		}
+		return this.#buyAction(kind, { consume: true });
+	}
+
+	/** Buy an extra action with AP. With `consume`, the bought action is used
+	 *  immediately rather than banked. */
+	async #buyAction(kind, { consume = false } = {}) {
+		const cost = PipBoyApp.ACTION_COST[kind];
+		const pool = game.user.isGM ? "gmAP" : "partyAP";
+		const available = Number(game.settings.get("fallout", pool) ?? 0);
+		const label = kind === "major" ? "major" : "minor";
+		if (available < cost) {
+			ui.notifications?.warn(
+				`No ${label} action left, and not enough AP to buy one (needs ${cost}, pool has ${available}).`);
+			return false;
+		}
+		const confirmed = await foundry.applications.api.DialogV2.confirm({
+			window: { title: "Buy Action" },
+			content: `<p>No ${label} action remaining. Spend <strong>${cost} AP</strong> `
+				+ `for an extra ${label} action? (Pool: ${available})</p>`,
+			rejectClose: false,
+		});
+		if (!confirmed) return false;
+		fallout.APTrackerV2?.adjustAP(pool, -cost);
+		const actions = this.#prepareActions(this.actor);
+		if (!consume) await this.#setActions({ ...actions, [kind]: actions[kind] + 1 });
+		await ChatMessage.create({
+			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+			content: `<p><strong>${this.actor.name}</strong> spends <strong>${cost} AP</strong> `
+				+ `for an extra ${label} action.</p>`,
+		});
+		return true;
 	}
 
 	#prepareConditions(conditions) {
@@ -535,6 +670,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 				weight: isys.weight ?? null,
 				equippable: typeof isys.equipped === "boolean",
 				equipped: isys.equipped === true,
+				favorite: isys.favorite === true,
 				subtitle: this.#itemSubtitle(item),
 			};
 
@@ -981,10 +1117,19 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		const item = this.actor.items.get(row.dataset.itemId);
 		if (!item) return;
 
+		// Favourites only make sense for the things the FAVORITES section shows.
+		const favouritable = ["weapon", "consumable"].includes(item.type);
+		const isFavourite = item.system?.favorite === true;
+		const favouriteEntry = favouritable
+			? `<button type="button" data-menu="favorite">
+				<i class="fas fa-star"></i> ${isFavourite ? "Unfavorite" : "Favorite"}</button>`
+			: "";
+
 		const menu = document.createElement("div");
 		menu.className = "pip-context-menu";
 		menu.innerHTML = `
 			<div class="pip-menu-title">${item.name}</div>
+			${favouriteEntry}
 			<button type="button" data-menu="drop"><i class="fas fa-hand-holding"></i> Drop</button>
 			<button type="button" data-menu="transfer"><i class="fas fa-people-arrows"></i> Transfer&hellip;</button>
 			<button type="button" data-menu="delete"><i class="fas fa-trash"></i> Delete&hellip;</button>`;
@@ -1023,21 +1168,123 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			if (!action) return;
 			this.#closeEditFlyout();
 			PipBoyApp.playSound("select");
-			if (action === "drop") await this.#dropItem(item);
+			if (action === "favorite") {
+				await item.update({ "system.favorite": !item.system.favorite });
+				this.render();
+			} else if (action === "drop") await this.#dropItem(item);
 			else if (action === "transfer") await this.#transferItem(item);
 			else if (action === "delete") await this.#deleteItem(item);
 		});
 	}
 
-	/** Drop: remove the item, announcing it in chat so the GM can place it. */
+	/** Is dropping to the canvas possible right now? */
+	static get canUseItemPiles() {
+		return game.modules.get("item-piles")?.active === true
+			&& typeof game.itempiles?.API?.createItemPile === "function";
+	}
+
+	/** The single reusable actor that backs every dropped-item pile.
+	 *
+	 *  Item Piles would otherwise fall back to its default pile actor, which
+	 *  the fallout system's integration declares as a `character` — a PC-typed
+	 *  actor sitting at 0 HP in the actor directory. Instead we own one `npc`
+	 *  actor with real health, reused by every pile (piles are unlinked tokens
+	 *  of it, so dropping never creates another actor). GM-only.
+	 */
+	static async #ensurePileActor() {
+		const existing = game.actors.find((a) => a.getFlag(MODULE_ID, "pileActor") === true);
+		if (existing) return existing;
+		if (!game.user.isGM) return null;
+		return Actor.create({
+			name: "Dropped Items",
+			type: "npc",
+			// Never leave a 0 HP actor lying around — it reads as a corpse in
+			// the directory and in any HP-driven automation.
+			system: { health: { value: 1, max: 1 } },
+			ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
+			flags: { [MODULE_ID]: { pileActor: true } },
+		});
+	}
+
+	/** GM-side execution of a drop: create the pile, remove the item, announce
+	 *  it. Players reach this through the module socket. */
+	static async dropToGround({ actorUuid, itemId, sceneId, x, y }) {
+		if (!game.user.isGM) return false;
+		const doc = await fromUuid(actorUuid);
+		const actor = doc?.actor ?? doc;
+		const item = actor?.items.get(itemId);
+		if (!actor || !item) return false;
+		try {
+			const pileActor = await PipBoyApp.#ensurePileActor();
+			await game.itempiles.API.createItemPile({
+				position: { x, y },
+				sceneId,
+				items: [item.toObject()],
+				...(pileActor ? { actor: pileActor.uuid, createActor: false } : {}),
+			});
+			const qty = item.system?.quantity;
+			const label = `<strong>${foundry.utils.escapeHTML(item.name)}</strong>`
+				+ `${typeof qty === "number" && qty > 1 ? ` (×${qty})` : ""}`;
+			await item.delete();
+			await ChatMessage.create({
+				speaker: ChatMessage.getSpeaker({ actor }),
+				content: `<p><strong>${actor.name}</strong> drops ${label} on the ground.</p>`,
+			});
+			return true;
+		} catch (error) {
+			console.error(`${MODULE_ID} | could not create an item pile`, error);
+			ui.notifications?.error(`Could not drop ${item.name} on the ground — see the console.`);
+			return false;
+		}
+	}
+
+	/** Drop: put the item on the ground at the character's token as an item
+	 *  pile, so it can be picked back up. Without a token on the scene (or
+	 *  without Item Piles) the item stays in the inventory, merely unequipped —
+	 *  dropping should never destroy something. */
 	async #dropItem(item) {
+		const scene = canvas?.scene;
+		const token = scene ? this.#findMyToken(scene) : null;
+
+		if (token && PipBoyApp.canUseItemPiles) {
+			const pos = token.movement?.destination ?? token;
+			const payload = {
+				actorUuid: this.actor.uuid,
+				itemId: item.id,
+				sceneId: scene.id,
+				x: pos.x ?? token.x,
+				y: pos.y ?? token.y,
+			};
+			if (game.user.isGM) {
+				if (await PipBoyApp.dropToGround(payload)) return;
+			} else if (game.users.activeGM) {
+				// Players can't create tokens or actors; the GM's client does it.
+				game.socket.emit(`module.${MODULE_ID}`, {
+					action: "dropItem", ...payload, userId: game.user.id,
+				});
+				ui.notifications?.info(`Dropping ${item.name}…`);
+				return;
+			} else {
+				ui.notifications?.warn("A GM must be online to drop items on the ground.");
+			}
+		}
+
+		// Fallback: keep the item, just take it off.
 		const qty = item.system?.quantity;
+		const label = `<strong>${foundry.utils.escapeHTML(item.name)}</strong>`
+			+ `${typeof qty === "number" && qty > 1 ? ` (×${qty})` : ""}`;
+		if (item.system?.equipped === true) {
+			await item.update({ "system.equipped": false });
+		}
+		const why = !token
+			? "no token on this scene"
+			: (PipBoyApp.canUseItemPiles ? "the drop could not be completed" : "Item Piles isn't available");
+		ui.notifications?.info(
+			`${item.name} was unequipped rather than dropped on the ground (${why}).`);
 		await ChatMessage.create({
 			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-			content: `<p><strong>${this.actor.name}</strong> drops <strong>${item.name}</strong>`
-				+ `${typeof qty === "number" && qty > 1 ? ` (×${qty})` : ""}.</p>`,
+			content: `<p><strong>${this.actor.name}</strong> sets aside ${label}.</p>`,
 		});
-		await item.delete();
 	}
 
 	/** Delete: silent removal, guarded by a confirmation dialog. */
@@ -1234,10 +1481,12 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			const useScreen = game.settings.get(MODULE_ID, "lightColor") === "screen";
 			const frame = game.settings.get(MODULE_ID, "frameColor");
 			const color = useScreen ? (TINT_COLORS[frame] ?? FALLOUT_GREEN) : FALLOUT_GREEN;
+			const bright = Number(game.settings.get(MODULE_ID, "lightBright")) || 10;
+			const dim = Number(game.settings.get(MODULE_ID, "lightDim")) || 20;
 			await token.update({
 				[`flags.${MODULE_ID}.prevLight`]: token.light?.toObject() ?? {},
 				[`flags.${MODULE_ID}.lightOn`]: true,
-				light: { bright: 10, dim: 20, angle: 360, color, alpha: 0.35 },
+				light: { bright, dim, angle: 360, color, alpha: 0.35 },
 			});
 		}
 	}
@@ -1433,7 +1682,77 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	static async #onAttackWeapon(event, target) {
 		event.stopPropagation();
 		const item = this.#getItem(target);
-		if (item) await rollWeaponAttack(this.actor, item);
+		if (!item) return;
+		// Attacking is a major action. If none is left and the player declines
+		// to buy one, warn but don't block — the GM has the final say.
+		if (!await this.spendAction("major")) {
+			ui.notifications?.warn(`${this.actor.name} has no major action left this round.`);
+		}
+		// Aim benefits this attack and its damage, then is spent.
+		const aiming = this.isAiming;
+		await rollWeaponAttack(this.actor, item, { aiming });
+		if (aiming) {
+			const actions = this.#prepareActions(this.actor);
+			if (actions) await this.#setActions({ ...actions, aiming: false });
+		}
+		this.render();
+	}
+
+	/** Star button on a FAVORITES row: drop it from the favourites list. */
+	static async #onToggleFavorite(event, target) {
+		event.stopPropagation();
+		const item = this.#getItem(target);
+		if (!item) return;
+		await item.update({ "system.favorite": !item.system.favorite });
+		this.render();
+	}
+
+	/** Add an item from the system's compendiums, using the system's own type
+	 *  menu and item selector — the same flow as the character sheet. */
+	static #onAddFromCompendium(event) {
+		event.stopPropagation();
+		const menu = fallout?.apps?.ItemTypeMenu;
+		if (!menu) {
+			ui.notifications?.warn("The fallout system's compendium browser is unavailable.");
+			return;
+		}
+		new menu(this.actor).render(true);
+	}
+
+	/** Click an action pip: spend it, or buy another when it's already spent. */
+	static async #onToggleAction(event, target) {
+		event.stopPropagation();
+		const kind = target.dataset.kind;
+		if (kind !== "major" && kind !== "minor") return;
+		const actions = this.#prepareActions(this.actor);
+		if (!actions) return;
+		if (actions[kind] > 0) await this.#setActions({ ...actions, [kind]: actions[kind] - 1 });
+		else await this.#buyAction(kind);
+		this.render();
+	}
+
+	/** Restore both actions (new turn, or fixing a misclick). */
+	static async #onResetActions(event) {
+		event.stopPropagation();
+		await this.#setActions({ major: 1, minor: 1, aiming: false });
+		this.render();
+	}
+
+	/** AIM: a minor action that benefits the next attack. Clicking again
+	 *  cancels it without refunding the action. */
+	static async #onToggleAim(event) {
+		event.stopPropagation();
+		const actions = this.#prepareActions(this.actor);
+		if (!actions) return;
+		if (actions.aiming) {
+			await this.#setActions({ ...actions, aiming: false });
+		} else {
+			// Aiming costs the minor action (bought with AP if none is left).
+			if (!await this.spendAction("minor")) return;
+			const after = this.#prepareActions(this.actor);
+			await this.#setActions({ ...after, aiming: true });
+		}
+		this.render();
 	}
 
 	static async #onDamageWeapon(event, target) {

@@ -27,6 +27,79 @@
 		<div class="pip-vital{{#if status.carryWeight.level}} pip-encumbered{{/if}}" data-tooltip="Carried / capacity"><span class="pip-vital-val">{{status.carryWeight.current}}/{{status.carryWeight.max}}</span><span class="pip-vital-key">WT</span></div>
 	</div>
 
+	{{#if status.actions}}
+	<div class="pip-actions">
+		<span class="pip-actions-label">ACTIONS</span>
+		<button type="button" class="pip-action-pip{{#if status.actions.majorSpent}} spent{{/if}}"
+			data-action="toggleAction" data-kind="major"
+			data-tooltip="Major action — click to spend; when spent, buy another for 2 AP">
+			<span class="pip-dots">&bull;&bull;</span> MAJOR{{#if status.actions.majorCount}} ×{{status.actions.majorCount}}{{/if}}
+		</button>
+		<button type="button" class="pip-action-pip{{#if status.actions.minorSpent}} spent{{/if}}"
+			data-action="toggleAction" data-kind="minor"
+			data-tooltip="Minor action — click to spend; when spent, buy another for 1 AP">
+			<span class="pip-dots">&bull;</span> MINOR{{#if status.actions.minorCount}} ×{{status.actions.minorCount}}{{/if}}
+		</button>
+		<button type="button" class="pip-action-pip pip-aim{{#if status.actions.aiming}} aiming{{/if}}"
+			data-action="toggleAim"
+			data-tooltip="Aim — a minor action that benefits your next attack (Accurate weapons can then buy damage dice at 1 AP each)">
+			<i class="fas fa-crosshairs"></i> {{#if status.actions.aiming}}AIMING{{else}}AIM{{/if}}
+		</button>
+		<button type="button" class="pip-icon-btn" data-action="resetActions" data-tooltip="Reset actions">
+			<i class="fas fa-rotate-left"></i>
+		</button>
+	</div>
+	{{/if}}
+
+	{{#if status.favorites.any}}
+	<h3 class="pip-section-title"><i class="fas fa-star"></i> FAVORITES</h3>
+	<div class="pip-favs">
+		{{#if status.favorites.weapons.length}}
+		<div class="pip-fav-group">
+			<span class="pip-fav-label">WEAPONS</span>
+			{{!-- Weapons get two rows: name, then damage left / actions right --}}
+			{{#each status.favorites.weapons}}
+			<div class="pip-fav pip-fav-weapon{{#if equipped}} equipped{{/if}}" data-item-id="{{id}}">
+				<div class="pip-fav-line">
+					<img class="pip-item-img" src="{{img}}" alt="" data-action="showInfo" data-tooltip="View details" />
+					<span class="pip-item-name" data-action="showInfo" data-tooltip="View details">{{name}}</span>
+				</div>
+				<div class="pip-fav-line pip-fav-line-2">
+					<span class="pip-item-sub">{{#if subtitle}}{{subtitle}}{{/if}}</span>
+					<span class="pip-item-actions">
+						<button type="button" class="pip-icon-btn pip-attack-btn" data-action="attackWeapon"
+							data-tooltip="Roll attack"><i class="fas fa-crosshairs"></i></button>
+						<button type="button" class="pip-icon-btn pip-damage-btn" data-action="damageWeapon"
+							data-tooltip="Roll damage"><i class="fas fa-burst"></i></button>
+						<button type="button" class="pip-icon-btn pip-unfav-btn" data-action="toggleFavorite"
+							data-tooltip="Remove from favorites"><i class="fas fa-star"></i></button>
+					</span>
+				</div>
+			</div>
+			{{/each}}
+		</div>
+		{{/if}}
+		{{#if status.favorites.consumables.length}}
+		<div class="pip-fav-group">
+			<span class="pip-fav-label">CONSUMABLES</span>
+			{{#each status.favorites.consumables}}
+			<div class="pip-fav" data-item-id="{{id}}">
+				<img class="pip-item-img" src="{{img}}" alt="" data-action="showInfo" data-tooltip="View details" />
+				<span class="pip-item-name" data-action="showInfo" data-tooltip="View details">{{name}}</span>
+				{{#if quantity}}<span class="pip-item-qty">×{{quantity}}</span>{{/if}}
+				<span class="pip-item-actions">
+					<button type="button" class="pip-icon-btn pip-use-btn" data-action="useConsumable"
+						data-tooltip="Use"><i class="fas fa-mortar-pestle"></i></button>
+					<button type="button" class="pip-icon-btn pip-unfav-btn" data-action="toggleFavorite"
+						data-tooltip="Remove from favorites"><i class="fas fa-star"></i></button>
+				</span>
+			</div>
+			{{/each}}
+		</div>
+		{{/if}}
+	</div>
+	{{/if}}
+
 	<h3 class="pip-section-title">CONDITION</h3>
 	<div class="pip-condition">
 		<div class="pip-body pipboy-status-screen {{status.bodyType}}">
