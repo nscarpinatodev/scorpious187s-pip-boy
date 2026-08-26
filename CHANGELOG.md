@@ -3,6 +3,18 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-08-23
+
+### Fixed
+
+- **Maps on tile-built scenes** — the MAP tab treated a scene as unavailable
+  unless it had a background image, so the **LOCAL** (or **WORLD**) button
+  disappeared on scenes assembled purely from tiles. A scene now qualifies if it
+  has a background image **or** any tiles tagged "Show on Pip-Boy map"; with no
+  background to measure, the map sizes itself from the scene's own dimensions
+  and draws the tiles in their proper places. The gate dated from v0.1.0 and had
+  been wrong since tile support arrived in v0.3.0.
+
 ## [1.1.0] — 2026-08-15
 
 ### Added

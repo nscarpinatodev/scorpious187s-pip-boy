@@ -327,6 +327,14 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		return /^https?:|^data:/i.test(path) ? path : foundry.utils.getRoute(path);
 	}
 
+	/** Height / width of a scene's map rect, for sizing a background-less map. */
+	#sceneAspect(scene) {
+		const dim = scene?.dimensions;
+		const w = Number(dim?.sceneWidth) || 0;
+		const h = Number(dim?.sceneHeight) || 0;
+		return w > 0 && h > 0 ? h / w : 1;
+	}
+
 	/** Scene tiles the GM tagged "Show on Pip-Boy map", in % of the scene rect.
 	 *  Drawn inside the map canvas, so they pan/zoom and take the phosphor
 	 *  treatment along with the scene image. */
@@ -359,14 +367,19 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	#worldMapData() {
 		if (!game.settings.get(MODULE_ID, "worldMapEnabled")) return null;
 		const scene = game.scenes.get(game.settings.get(MODULE_ID, "worldMapSceneId"));
-		const bg = scene?.background?.src ?? scene?.img ?? null;
-		if (!scene || !bg) return null;
+		if (!scene) return null;
+		const bg = scene.background?.src ?? scene.img ?? null;
+		const tiles = this.#sceneTiles(scene);
+		// A scene built purely from tagged tiles has no background image but is
+		// still a perfectly good map.
+		if (!bg && !tiles.length) return null;
 		const actorId = game.settings.get(MODULE_ID, "worldMapActorId");
 		const token = actorId ? scene.tokens.find((t) => t.actorId === actorId) : null;
 		const { fx, fy, hasToken } = this.#tokenCenter(scene, token);
 		return {
-			bgSrc: this.#resolveSrc(bg),
-			tiles: this.#sceneTiles(scene),
+			bgSrc: bg ? this.#resolveSrc(bg) : null,
+			aspect: this.#sceneAspect(scene),
+			tiles,
 			fx, fy, hasToken,
 			sceneName: scene.name,
 			defaultZoom: game.settings.get(MODULE_ID, "worldMapZoom") || 1.5,
@@ -377,12 +390,15 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	 *  scene background art is shown — no tokens — so nothing hostile leaks. */
 	#localMapData() {
 		const scene = canvas?.scene;
-		const bg = scene?.background?.src ?? scene?.img ?? null;
-		if (!scene || !bg) return null;
+		if (!scene) return null;
+		const bg = scene.background?.src ?? scene.img ?? null;
+		const tiles = this.#sceneTiles(scene);
+		if (!bg && !tiles.length) return null;
 		const { fx, fy, hasToken } = this.#tokenCenter(scene, this.#findMyToken(scene));
 		return {
-			bgSrc: this.#resolveSrc(bg),
-			tiles: this.#sceneTiles(scene),
+			bgSrc: bg ? this.#resolveSrc(bg) : null,
+			aspect: this.#sceneAspect(scene),
+			tiles,
 			fx, fy, hasToken,
 			sceneName: scene.name,
 			defaultZoom: 2.5,
@@ -1381,18 +1397,23 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	#layoutMap() {
 		const vp = this.element?.querySelector(".pip-map-viewport");
 		const cv = vp?.querySelector(".pip-map-canvas");
-		const img = cv?.querySelector(".pip-map-scene");
-		if (!vp || !cv || !img) return;
+		if (!vp || !cv) return;
+		// Tile-only maps have no scene image to measure.
+		const img = cv.querySelector(".pip-map-scene");
 
 		const apply = () => {
 			const vw = vp.clientWidth;
 			const vh = vp.clientHeight;
-			if (!vw || !vh || !img.naturalWidth) return;
+			if (!vw || !vh) return;
+			if (img && !img.naturalWidth) return;
 			const zoom = this.#currentZoom(vp);
 			const fx = parseFloat(vp.dataset.fx) || 0.5;
 			const fy = parseFloat(vp.dataset.fy) || 0.5;
 			const dispW = vw * zoom;
-			const dispH = dispW * (img.naturalHeight / img.naturalWidth);
+			const aspect = img
+				? img.naturalHeight / img.naturalWidth
+				: (parseFloat(vp.dataset.aspect) || 1);
+			const dispH = dispW * aspect;
 			cv.style.width = `${dispW}px`;
 			cv.style.height = `${dispH}px`;
 			cv.style.left = `${vw / 2 - fx * dispW + this.#mapView.panX}px`;
@@ -1406,7 +1427,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			}
 		};
 
-		if (img.complete && img.naturalWidth) apply();
+		if (!img || (img.complete && img.naturalWidth)) apply();
 		else img.addEventListener("load", apply, { once: true });
 	}
 
