@@ -1,48 +1,208 @@
-<div class="standard-form">
+<div class="standard-form pip-wmc">
 	<p class="hint">
 		Show a view of a world-map scene on the Pip-Boy MAP tab, centred on a party
 		token that all players own. The map is tinted to match the Pip-Boy screen.
 	</p>
 
-	<div class="form-group">
-		<label>Enable World Map</label>
-		<div class="form-fields">
-			<input type="checkbox" name="enabled" {{#if enabled}}checked{{/if}} />
-		</div>
-	</div>
+	<div class="pip-wmc-cols">
+		<div class="pip-wmc-col">
 
-	<div class="form-group">
-		<label>World Map Scene</label>
-		<div class="form-fields">
-			<select name="sceneId">
-				<option value="">&mdash; None &mdash;</option>
-				{{#each scenes}}
-				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
-				{{/each}}
-			</select>
-		</div>
-		<p class="hint">The scene whose background is shown as the map.</p>
-	</div>
+			<div class="form-group">
+				<label>Enable World Map</label>
+				<div class="form-fields">
+					<input type="checkbox" name="enabled" {{#if enabled}}checked{{/if}} />
+				</div>
+			</div>
 
-	<div class="form-group">
-		<label>Party Token (Actor)</label>
-		<div class="form-fields">
-			<select name="actorId">
-				<option value="">&mdash; None &mdash;</option>
-				{{#each actors}}
-				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
-				{{/each}}
-			</select>
-		</div>
-		<p class="hint">The map centres on this actor's token in the scene above.</p>
-	</div>
+			<div class="form-group">
+				<label>World Map Scene</label>
+				<div class="form-fields">
+					<select name="sceneId">
+						<option value="">&mdash; None &mdash;</option>
+						{{#each scenes}}
+						<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}{{#unless hex}} (square grid){{/unless}}</option>
+						{{/each}}
+					</select>
+				</div>
+				<p class="hint">Hex travel requires a hexagonal grid.</p>
+			</div>
 
-	<div class="form-group">
-		<label>Zoom</label>
-		<div class="form-fields">
-			<input type="number" name="zoom" value="{{zoom}}" step="0.25" min="1" max="6" />
+			<div class="form-group">
+				<label>Zoom</label>
+				<div class="form-fields">
+					<input type="number" name="zoom" value="{{zoom}}" step="0.25" min="1" max="6" />
+				</div>
+				<p class="hint">Higher values zoom in closer around the party token.</p>
+			</div>
+
+			<fieldset>
+				<legend>Hex Travel</legend>
+				<p class="hint">
+					Dragging the party token walks it one hex at a time, advancing world time and
+					rolling an encounter per hex. Journeys can be undone from their chat card.
+				</p>
+
+				<div class="form-group">
+					<label>Enable Hex Travel</label>
+					<div class="form-fields">
+						<input type="checkbox" name="travelEnabled" {{#if travelEnabled}}checked{{/if}} />
+					</div>
+					<p class="hint">Needs a hex scene and a GM online.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Any Token Travels</label>
+					<div class="form-fields">
+						<input type="checkbox" name="travelAnyToken" {{#if travelAnyToken}}checked{{/if}} />
+					</div>
+					<p class="hint">Off: only the party token triggers travel.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Hours per Hex</label>
+					<div class="form-fields">
+						<input type="number" name="travelHexHours" value="{{travelHexHours}}" step="0.5" min="0" />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label>Max Hexes per Journey</label>
+					<div class="form-fields">
+						<input type="number" name="travelMaxHexes" value="{{travelMaxHexes}}" step="1" min="1" />
+					</div>
+					<p class="hint">Guards against a stray drag across the map.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Seconds per Hex</label>
+					<div class="form-fields">
+						<input type="number" name="travelHexSeconds" value="{{travelHexSeconds}}" step="0.5" min="0.2" />
+					</div>
+					<p class="hint">
+						How long the party takes to cross one hex. The glide, the counter's spin,
+						and the clock all follow this. Higher is slower.
+					</p>
+				</div>
+
+			</fieldset>
+
 		</div>
-		<p class="hint">Higher values zoom in closer around the party token.</p>
+		<div class="pip-wmc-col">
+
+			<fieldset>
+				<legend>Party Token</legend>
+
+				<div class="form-group">
+					<label>Party Token (Actor)</label>
+					<div class="form-fields">
+						<select name="actorId">
+							<option value="">&mdash; None &mdash;</option>
+							{{#each actors}}
+							<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+							{{/each}}
+						</select>
+					</div>
+					<p class="hint">The map centres on this actor's token.</p>
+				</div>
+
+				{{#if hasParty}}
+				<p class="hint pip-wmc-roster-head">
+					Roster for <strong>{{partyName}}</strong> &mdash; who is travelling. The best
+					Survival rank among them lowers the encounter chance.
+				</p>
+				<div class="pip-wmc-roster">
+					{{#each roster}}
+					<label class="pip-wmc-member">
+						<input type="checkbox" name="member.{{uuid}}" {{#if member}}checked{{/if}} />
+						<span>{{name}}</span>
+					</label>
+					{{else}}
+					<p class="hint">No character actors in this world yet.</p>
+					{{/each}}
+				</div>
+				{{else}}
+				<div class="form-group">
+					<label>Create One</label>
+					<div class="form-fields">
+						<button type="button" data-action="createParty">
+							<i class="fas fa-users"></i> Create party token
+						</button>
+					</div>
+					<p class="hint">
+						Fallout 2d20 has no group actor, so the module can make one and select it
+						above. Drag it onto the world map to place the party.
+					</p>
+				</div>
+				{{/if}}
+			</fieldset>
+
+			<fieldset>
+				<legend>Encounters</legend>
+
+				<div class="form-group">
+					<label>Default Table</label>
+					<div class="form-fields">
+						<select name="encounterTableUuid">
+							<option value="">&mdash; None &mdash;</option>
+							{{#each tables}}
+							<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+							{{/each}}
+						</select>
+					</div>
+					<p class="hint">Regions can override this with their own table.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Chance (%)</label>
+					<div class="form-fields">
+						<input type="number" name="encounterChance" value="{{encounterChance}}" step="1" min="0" max="100" />
+					</div>
+					<p class="hint">Per hex, before Survival is applied.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Survival Reduction (%)</label>
+					<div class="form-fields">
+						<input type="number" name="encounterSurvivalReduction" value="{{encounterSurvivalReduction}}" step="1" min="0" />
+					</div>
+					<p class="hint">Subtracted per rank of the party's best Survival.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Minimum Chance (%)</label>
+					<div class="form-fields">
+						<input type="number" name="encounterChanceFloor" value="{{encounterChanceFloor}}" step="1" min="0" max="100" />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label>Pull Players In</label>
+					<div class="form-fields">
+						<input type="checkbox" name="encounterPullUsers" {{#if encounterPullUsers}}checked{{/if}} />
+					</div>
+					<p class="hint">Bring every player's view to an activated encounter scene.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Preload Scenes</label>
+					<div class="form-fields">
+						<input type="checkbox" name="encounterPreload" {{#if encounterPreload}}checked{{/if}} />
+					</div>
+					<p class="hint">Fetch a linked scene's art as it is rolled, so activation is instant.</p>
+				</div>
+
+				<div class="form-group">
+					<label>Scene Encounters</label>
+					<div class="form-fields">
+						<button type="button" data-action="openBuilder">
+							<i class="fas fa-skull"></i> Encounter Builder
+						</button>
+					</div>
+					<p class="hint">Build tables whose entries open a prepared scene.</p>
+				</div>
+			</fieldset>
+
+		</div>
 	</div>
 
 	<footer class="form-footer">

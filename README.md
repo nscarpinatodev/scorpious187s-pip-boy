@@ -106,6 +106,45 @@ can listen to their own station without affecting anyone else. Now-playing
 readout, next-track / off buttons, and per-client **RADIO** and **SOUNDS**
 volume sliders.
 
+### Hex travel (world map)
+With a **hexagonal** World Map scene, dragging the party token walks it one hex
+at a time instead of teleporting: each hex advances world time and rolls for a
+random encounter, and the journey stops where an encounter fires — Fallout 1's
+travel map, on your Foundry canvas.
+
+- **Party token** — Fallout 2d20 has no group actor, so **Configure World Map**
+  can create one for you (an NPC-typed actor owned by all players) and record a
+  **roster** of who's travelling.
+- **Encounters** — a chance per hex, lowered by the party's best **Survival**
+  rank. A default encounter table applies everywhere; draw a **Region** on the
+  map and give it its own table to vary encounters by terrain.
+- **Time** — advanced through Foundry's core clock, so any calendar module
+  (Calendaria, Simple Calendar, Seasons & Stars) follows automatically.
+- **Undo** — each journey's chat card carries **UNDO TRAVEL**, which puts the
+  token back, rewinds the clock, and voids the encounter.
+
+Travel needs a hexagonal grid and a GM online; without either it tells you
+rather than moving untracked. Encounter tables are yours to build — the module
+ships the mechanism, not the rulebooks' content.
+
+### Scene-linked encounters
+An encounter can open a **prepared scene** instead of only naming something in
+chat. Build them in **Game Settings → Build Encounter Tables**: each row is a
+name, a weight, a scene, and optionally a playlist, a journal entry, and GM
+notes.
+
+Entries are saved as an ordinary **Roll Table**, so weights, draw-without-
+replacement, compendium export, and the per-Region overrides above all keep
+working — the scene and its trimmings ride along as flags on each result.
+Existing text-only tables carry on unchanged.
+
+When a scene-linked encounter is rolled, the journey halts and the **GM** is
+prompted to **Activate**, **Reroll**, or **Ignore** — players only see the
+encounter card. Activating preloads the scene, activates it, optionally pulls
+everyone in, starts its music, and opens its journal for the GM. A **RETURN TO
+MAP** button brings the party back to the world map afterwards, with their token
+still standing on the hex where they stopped.
+
 ### Custom sounds
 The GM can set a **Custom Sound Folder** (in Foundry user data) holding
 replacement audio for `activate.wav`, `tab.wav`, `select.wav`, `rollover.wav`,

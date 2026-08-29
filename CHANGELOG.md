@@ -3,6 +3,62 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-08-29
+
+### Added
+
+- **Hex travel — Fallout 1-style fast travel.** Dragging the party token across a
+  hex-gridded World Map scene is intercepted and replayed **one hex at a time**:
+  each hex advances world time and rolls for a random encounter, and the journey
+  halts where an encounter fires.
+  - **Party actor** — the fallout system has no group actor type, so the module
+    creates one on request (an `npc` with real health, owned by all players,
+    never a 0 HP character in the directory) and selects it as the map's token.
+    Its roster records who is travelling.
+  - **Encounters** — chance per hex, reduced by the party's best **Survival**
+    rank (the Outdoorsman analogue) down to a configurable floor. Tables are a
+    world default, overridable per terrain by a table picker added to **Region**
+    configs.
+  - **Pace** — a **Seconds per Hex** setting drives the whole journey: the
+    token's glide, the counter's spin, and the clock all derive from it, so
+    nothing drifts out of step. The party walks the route rather than teleporting.
+  - **The Wayfarer** — encounter checks are shown as a Vault-Tec counter with
+    three mechanical number reels that spin up and settle left to right, in
+    place of dice. It reports the target, the result, and CLEAR or ENCOUNTER.
+  - **Every roll is recorded** — the journey's chat card lists each hex's roll
+    against the chance, so a quiet crossing is as legible as an eventful one.
+  - **Time** — advanced once per hex as it is crossed, through Calendaria's own
+    `advanceTime` API when present and core `game.time` otherwise, so Simple
+    Calendar and Seasons & Stars follow along without a dependency.
+  - **Undo** — every journey posts a chat card with **UNDO TRAVEL**, restoring
+    position, rewinding the clock, un-marking any drawn table results, and
+    voiding the encounter card. Only the most recent journey can be undone.
+  - Travel requires a hexagonal world map and a GM online; both are enforced
+    rather than silently skipped. Configured under **Configure World Map**.
+- **Scene-linked encounters** — an encounter can name a prepared **scene**, so a
+  roll on the world map resolves into an actual map.
+  - **Encounter Builder** (Game Settings → Build Encounter Tables) edits
+    encounters as rows: name, weight, scene, playlist, journal, and GM notes.
+    It writes an ordinary **RollTable**, so weights, draw-without-replacement,
+    compendium export, and per-Region overrides all keep working — the scene and
+    its trimmings ride along in module flags on each result.
+  - **The GM confirms.** A scene-linked encounter halts the party and prompts the
+    GM with **Activate / Reroll / Ignore**; players only ever see the encounter
+    card. Rerolling draws again and re-prompts. The card keeps an ACTIVATE
+    button, so a dismissed prompt is not a dead end.
+  - **Activation** preloads the scene's art (begun as the encounter is rolled),
+    activates it, optionally pulls players in, starts the encounter's playlist,
+    and opens its journal for the GM alone.
+  - **RETURN TO MAP** reactivates the world map afterwards; the party token is
+    still on the hex where the journey stopped, so travel resumes on the next
+    drag. The control is a standing GM banner rather than only a chat card,
+    since chat scrolls away long before an encounter ends: it survives a reload,
+    hides itself once you are back, and can be **dragged between six snap
+    positions** — the four corners plus top and bottom centre, the latter lifted
+    clear of the Overseer and Party AP counters. Ghost outlines show every
+    position while dragging, and the choice is remembered per client.
+  - Plain text encounter tables are unaffected and need no changes.
+
 ## [1.2.0] — 2026-08-23
 
 ### Fixed

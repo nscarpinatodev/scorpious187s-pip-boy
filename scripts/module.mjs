@@ -2,6 +2,8 @@ import { MODULE_ID, FRAME_COLORS } from "./constants.mjs";
 import { PipBoyApp } from "./PipBoyApp.mjs";
 import { PipBoyRadio } from "./radio.mjs";
 import { PipBoyVats } from "./vats.mjs";
+import { PipBoyTravel } from "./travel.mjs";
+import { EncounterBuilder } from "./EncounterBuilder.mjs";
 import { WorldMapConfig } from "./WorldMapConfig.mjs";
 import { registerTokenHudButton } from "./token-hud.mjs";
 
@@ -244,6 +246,71 @@ Hooks.once("init", async () => {
 	game.settings.register(MODULE_ID, "worldMapZoom", {
 		scope: "world", config: false, type: Number, default: 1.5,
 	});
+	// --- Hex travel (GM) -------------------------------------------------
+	game.settings.register(MODULE_ID, "travelEnabled", {
+		scope: "world", config: false, type: Boolean, default: false,
+	});
+	game.settings.register(MODULE_ID, "travelAnyToken", {
+		scope: "world", config: false, type: Boolean, default: false,
+	});
+	game.settings.register(MODULE_ID, "travelHexHours", {
+		scope: "world", config: false, type: Number, default: 2,
+	});
+	game.settings.register(MODULE_ID, "travelMaxHexes", {
+		scope: "world", config: false, type: Number, default: 50,
+	});
+	// How long the party takes to cross one hex. Drives the glide animation,
+	// the counter's spin, and how gradually world time is paid out.
+	game.settings.register(MODULE_ID, "travelHexSeconds", {
+		scope: "world", config: false, type: Number, default: 3,
+	});
+	game.settings.register(MODULE_ID, "encounterTableUuid", {
+		scope: "world", config: false, type: String, default: "",
+	});
+	game.settings.register(MODULE_ID, "encounterChance", {
+		scope: "world", config: false, type: Number, default: 20,
+	});
+	game.settings.register(MODULE_ID, "encounterSurvivalReduction", {
+		scope: "world", config: false, type: Number, default: 2,
+	});
+	game.settings.register(MODULE_ID, "encounterChanceFloor", {
+		scope: "world", config: false, type: Number, default: 5,
+	});
+	// Scene-linked encounters.
+	game.settings.register(MODULE_ID, "encounterPullUsers", {
+		scope: "world", config: false, type: Boolean, default: true,
+	});
+	game.settings.register(MODULE_ID, "encounterPreload", {
+		scope: "world", config: false, type: Boolean, default: true,
+	});
+	game.settings.register(MODULE_ID, "encounterBuilderTableUuid", {
+		scope: "world", config: false, type: String, default: "",
+	});
+	// Where the standing RETURN control sits. Per client: the screen edges are
+	// crowded differently depending on which UI modules each GM runs.
+	game.settings.register(MODULE_ID, "returnBannerAnchor", {
+		scope: "client", config: false, type: String, default: "bottom-left",
+	});
+
+	// The world map to come back to after an encounter (internal).
+	game.settings.register(MODULE_ID, "travelReturnSceneId", {
+		scope: "world",
+		config: false,
+		type: String,
+		default: "",
+		onChange: () => PipBoyTravel.refreshReturnBanner(),
+	});
+
+	game.settings.registerMenu(MODULE_ID, "encounterBuilder", {
+		name: "Encounter Builder",
+		label: "Build Encounter Tables",
+		hint: "Create encounter tables whose entries open a prepared scene, with optional music, "
+			+ "GM notes, and a journal entry.",
+		icon: "fas fa-skull",
+		type: EncounterBuilder,
+		restricted: true,
+	});
+
 	game.settings.registerMenu(MODULE_ID, "worldMapConfig", {
 		name: "World Map",
 		label: "Configure World Map",
@@ -275,6 +342,9 @@ Hooks.once("ready", () => {
 	// Discover any GM-provided replacement sounds.
 	PipBoyApp.probeCustomSounds();
 
+	// Restore the standing RETURN control if an encounter was left open.
+	PipBoyTravel.refreshReturnBanner();
+
 	// Cross-player item transfers: players can't create items on actors they
 	// don't own, so the active GM's client executes the move on their behalf.
 	game.socket.on(`module.${MODULE_ID}`, async (msg) => {
@@ -288,6 +358,12 @@ Hooks.once("ready", () => {
 			if (!actor || !requester) return;
 			if (!actor.testUserPermission(requester, "OWNER")) return;
 			await PipBoyApp.dropToGround(msg);
+			return;
+		}
+
+		// Hex travel: players can't advance world time or draw tables.
+		if (msg?.action === "travel") {
+			await PipBoyTravel.travel(msg);
 			return;
 		}
 
@@ -314,8 +390,56 @@ Hooks.on("renderTokenHUD", registerTokenHudButton);
 // V.A.T.S. — stamp targets onto fallout roll cards at creation (rolling client
 // only) and add the damage-application block when cards render.
 Hooks.on("preCreateChatMessage", (message) => PipBoyVats.onPreCreateChatMessage(message));
-Hooks.on("renderChatMessageHTML", (message, html) =>
-	PipBoyVats.onRenderChatMessageHTML(message, html instanceof HTMLElement ? html : html?.[0]));
+Hooks.on("renderChatMessageHTML", (message, html) => {
+	const element = html instanceof HTMLElement ? html : html?.[0];
+	PipBoyVats.onRenderChatMessageHTML(message, element);
+	PipBoyTravel.onRenderChatMessageHTML(message, element);
+	if (element && message.flags?.[MODULE_ID]?.travelReturn && game.user.isGM) {
+		element.querySelector(".pip-travel-return")?.addEventListener("click", (event) => {
+			event.currentTarget.disabled = true;
+			PipBoyTravel.returnToMap();
+		});
+	}
+});
+
+// The RETURN control depends on which scene is active, so re-evaluate it
+// whenever that changes.
+Hooks.on("canvasReady", () => PipBoyTravel.refreshReturnBanner());
+
+// Hex travel: intercept drags on the world map and replay them hex by hex.
+Hooks.on("preMoveToken", (document, move, options) =>
+	PipBoyTravel.onPreMoveToken(document, move, options));
+
+// "Encounter table" picker on Region configs, so terrain can override the
+// world default. Same injection pattern as the tile checkbox below.
+Hooks.on("renderRegionConfig", (app, html) => {
+	const element = html instanceof HTMLElement ? html : html?.[0];
+	const doc = app.document ?? app.object;
+	if (!element || !doc) return;
+	const flagName = `flags.${MODULE_ID}.encounterTable`;
+	if (element.querySelector(`[name="${flagName}"]`)) return;
+	const current = doc.getFlag(MODULE_ID, "encounterTable") ?? "";
+	const options = game.tables.map((t) =>
+		`<option value="${t.uuid}"${t.uuid === current ? " selected" : ""}>${foundry.utils.escapeHTML(t.name)}</option>`
+	).join("");
+	const group = document.createElement("div");
+	group.className = "form-group";
+	group.innerHTML = `
+		<label>Pip-Boy encounter table</label>
+		<div class="form-fields">
+			<select name="${flagName}">
+				<option value="">&mdash; Use the world default &mdash;</option>
+				${options}
+			</select>
+		</div>
+		<p class="hint">Travel through this region draws from this table instead of the default.</p>`;
+	// Into a tab pane, never before the footer — a footer anchor renders the
+	// control on every tab (the v1.2.0 tile-config fix).
+	const tab = element.querySelector('.tab[data-tab="identity"]')
+		?? element.querySelector(".tab")
+		?? element.querySelector("form");
+	tab?.appendChild(group);
+});
 // Persistent-damage prompts as each combatant's turn ends (GM client).
 Hooks.on("combatTurnChange", (combat, prior) => PipBoyVats.onCombatTurnChange(combat, prior));
 

@@ -1101,3 +1101,452 @@
 .pip-tint-purple { --pip:#c58bff; --pip-dim:#7a4fb0; --pip-bg:#0f0618; --pip-glow:rgba(197,139,255,.55); }
 .pip-tint-red    { --pip:#ff5f57; --pip-dim:#a5342f; --pip-bg:#170303; --pip-glow:rgba(255,95,87,.55); }
 .pip-tint-yellow { --pip:#ffe14d; --pip-dim:#a89320; --pip-bg:#151201; --pip-glow:rgba(255,225,77,.5); }
+
+/* --- Pip-Boy travel chat cards --------------------------------------------- */
+/* Self-contained like the V.A.T.S. blocks: these render in chat, where UI
+   modules restyle aggressively, so every value is set explicitly. */
+.pip-travel-card {
+	display: block;
+	box-sizing: border-box;
+	padding: 5px 7px;
+	border: 1px solid #2f6f4b;
+	border-radius: 3px;
+	background: #0d1611;
+	color: #d3e6d7;
+	font-family: "Consolas", "Lucida Console", ui-monospace, monospace;
+	font-size: 12px;
+	line-height: 1.5;
+}
+.pip-travel-head strong { color: #45e07f; }
+.pip-travel-encounter {
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: 1px solid rgba(47, 111, 75, 0.45);
+}
+.pip-travel-encounter strong {
+	color: #ffb642;
+	letter-spacing: 1px;
+	margin-right: 4px;
+}
+.pip-travel-meta {
+	display: block;
+	color: #8fa895;
+	font-size: 10px;
+	letter-spacing: 1px;
+}
+.pip-travel-card button {
+	font-family: inherit !important;
+	font-size: 10px !important;
+	font-weight: 700 !important;
+	letter-spacing: 1px !important;
+	line-height: 1.6 !important;
+	height: auto !important;
+	min-height: 0 !important;
+	width: auto !important;
+	margin: 5px 0 0 !important;
+	padding: 1px 8px !important;
+	border: 1px solid transparent !important;
+	border-radius: 2px !important;
+	background: #45e07f !important;
+	color: #06120b !important;
+	box-shadow: none !important;
+	cursor: pointer;
+}
+.pip-travel-card button:disabled {
+	background: transparent !important;
+	color: #8fa895 !important;
+	border-color: rgba(47, 111, 75, 0.45) !important;
+	cursor: default;
+}
+
+/* --- World Map config dialog ------------------------------------------------ */
+/* Two columns so the form doesn't grow past the bottom of the screen, with the
+   party roster scrolling in place rather than pushing the footer off. Colours
+   come from Foundry's own theme variables so this follows light/dark and any
+   UI module's palette. */
+#scorpious-pipboy-worldmap-config .pip-wmc-cols {
+	display: grid;
+	/* Collapses to one column on a narrow window. */
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 0 16px;
+	align-items: start;
+	/* Never taller than the viewport: the dialog scrolls instead of overrunning. */
+	max-height: 68vh;
+	overflow-y: auto;
+	padding-right: 4px;
+}
+#scorpious-pipboy-worldmap-config .pip-wmc-col {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+#scorpious-pipboy-worldmap-config .pip-wmc-col fieldset { margin: 4px 0; }
+/* Keep labels on one line now that there's room for them. */
+#scorpious-pipboy-worldmap-config .form-group > label { min-width: 11ch; }
+#scorpious-pipboy-worldmap-config .hint { margin: 2px 0 0; }
+
+#scorpious-pipboy-worldmap-config .pip-wmc-roster-head { margin-bottom: 6px; }
+#scorpious-pipboy-worldmap-config .pip-wmc-roster {
+	max-height: 260px;
+	overflow-y: auto;
+	border: 1px solid var(--color-border-light-tertiary, rgba(128, 128, 128, 0.4));
+	border-radius: 4px;
+	padding: 4px 8px;
+}
+#scorpious-pipboy-worldmap-config .pip-wmc-member {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 2px;
+	cursor: pointer;
+	border-bottom: 1px solid var(--color-border-light-tertiary, rgba(128, 128, 128, 0.18));
+}
+#scorpious-pipboy-worldmap-config .pip-wmc-member:last-child { border-bottom: none; }
+#scorpious-pipboy-worldmap-config .pip-wmc-member span {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#scorpious-pipboy-worldmap-config .pip-wmc-member input[type="checkbox"] {
+	flex: 0 0 auto;
+	margin: 0;
+}
+
+/* per-hex roll log on a travel card */
+.pip-travel-rolls {
+	margin-top: 5px;
+	padding-top: 4px;
+	border-top: 1px solid rgba(47, 111, 75, 0.45);
+	max-height: 220px;
+	overflow-y: auto;
+}
+.pip-travel-roll {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	font-size: 11px;
+	padding: 1px 0;
+	color: #8fa895;
+}
+.pip-travel-roll.hit { color: #ffb642; font-weight: 700; }
+.pip-travel-hex { min-width: 5.5ch; }
+.pip-travel-dice { min-width: 8ch; font-variant-numeric: tabular-nums; }
+.pip-travel-detail {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* --- travel counter (mechanical encounter dials) ---------------------------- */
+/* A Vault-Tec desk counter: brushed casing, amber-lit window, three number
+   reels that spin up and clunk into place. Fully self-contained so no UI
+   module's chrome leaks in. */
+#pip-travel-dial.pip-dial {
+	--pip-dial-digit: 46px;
+	position: fixed;
+	top: 12vh;
+	left: 50%;
+	translate: -50% 0;
+	z-index: 70;
+	pointer-events: none;
+	opacity: 0;
+	transform: scale(0.96);
+	transition: opacity 0.28s ease, transform 0.28s ease;
+	font-family: "Consolas", "Lucida Console", ui-monospace, monospace;
+}
+#pip-travel-dial.pip-dial.visible { opacity: 1; transform: scale(1); }
+
+#pip-travel-dial .pip-dial-frame {
+	/* Fixed width and reserved rows: the readout swaps between "", CLEAR and
+	   ENCOUNTER, and the casing must not jump as it does. */
+	width: 310px;
+	box-sizing: border-box;
+	padding: 12px 16px 10px;
+	border: 2px solid #2b3a2c;
+	border-radius: 8px;
+	background:
+		linear-gradient(180deg, #33402f 0%, #232d21 46%, #1a2219 100%);
+	box-shadow:
+		0 10px 26px rgba(0, 0, 0, 0.6),
+		inset 0 1px 0 rgba(255, 255, 255, 0.09),
+		inset 0 -2px 6px rgba(0, 0, 0, 0.5);
+}
+
+#pip-travel-dial .pip-dial-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 8px;
+	height: 13px;
+	font-size: 10px;
+	letter-spacing: 3px;
+	color: #9fb89b;
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+}
+#pip-travel-dial .pip-dial-title { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+#pip-travel-dial .pip-dial-hex {
+	flex: 0 0 auto;
+	min-width: 5.5ch;
+	text-align: right;
+	color: #ffb642;
+	letter-spacing: 2px;
+}
+
+/* the lit window the reels turn behind */
+#pip-travel-dial .pip-dial-reels {
+	display: flex;
+	justify-content: center;
+	gap: 5px;
+	padding: 5px 7px;
+	border: 2px solid #11170f;
+	border-radius: 4px;
+	background: #0a0f08;
+	box-shadow:
+		inset 0 3px 10px rgba(0, 0, 0, 0.95),
+		inset 0 0 22px rgba(255, 182, 66, 0.12);
+}
+#pip-travel-dial .pip-dial-reel {
+	position: relative;
+	width: 34px;
+	height: var(--pip-dial-digit);
+	overflow: hidden;
+	border-radius: 2px;
+	background: linear-gradient(180deg, #1b2015 0%, #2a3220 50%, #1b2015 100%);
+}
+/* glass curvature over the reel */
+#pip-travel-dial .pip-dial-reel::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(180deg,
+		rgba(0, 0, 0, 0.72) 0%,
+		rgba(0, 0, 0, 0) 32%,
+		rgba(0, 0, 0, 0) 68%,
+		rgba(0, 0, 0, 0.72) 100%);
+}
+#pip-travel-dial .pip-dial-strip { will-change: transform; }
+#pip-travel-dial .pip-dial-digit {
+	display: block;
+	height: var(--pip-dial-digit);
+	line-height: var(--pip-dial-digit);
+	text-align: center;
+	font-size: 32px;
+	font-weight: 700;
+	color: #ffc457;
+	text-shadow: 0 0 9px rgba(255, 176, 60, 0.6);
+}
+
+#pip-travel-dial .pip-dial-readout {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 8px;
+	font-size: 9.5px;
+	letter-spacing: 1.5px;
+	color: #7f9a7c;
+	text-transform: uppercase;
+	/* Reserved so text changes never reflow, and tall enough that the longest
+	   state ("TRAVEL HALTED") is not clipped at the casing's lower edge. */
+	height: 17px;
+	line-height: 17px;
+	white-space: nowrap;
+}
+#pip-travel-dial .pip-dial-target {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#pip-travel-dial .pip-dial-result {
+	flex: 0 0 auto;
+	/* Fits the longest readout without letting a short one shift the layout. */
+	min-width: 14ch;
+	text-align: right;
+	font-weight: 700;
+	letter-spacing: 1.5px;
+}
+#pip-travel-dial .pip-dial-result.clear { color: #45e07f; }
+#pip-travel-dial .pip-dial-result.hit {
+	color: #ff6b62;
+	animation: pip-dial-alarm 0.5s steps(2) 3;
+}
+@keyframes pip-dial-alarm { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+	#pip-travel-dial .pip-dial-result.hit { animation: none; }
+	#pip-travel-dial.pip-dial { transition: none; }
+}
+
+/* --- encounter builder ------------------------------------------------------ */
+/* A row per encounter: name, weight, and its three document links on one line,
+   with GM notes wrapping underneath. Uses Foundry's theme variables so it
+   follows light/dark and any UI module's palette. */
+#scorpious-pipboy-encounter-builder .pip-eb-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 52vh;
+	overflow-y: auto;
+	padding: 4px 6px 6px;
+	border: 1px solid var(--color-border-light-tertiary, rgba(128, 128, 128, 0.4));
+	border-radius: 4px;
+	margin-bottom: 8px;
+}
+#scorpious-pipboy-encounter-builder .pip-eb-row {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) 5.5rem repeat(3, minmax(0, 1.6fr)) 2rem;
+	gap: 4px 6px;
+	align-items: center;
+}
+#scorpious-pipboy-encounter-builder .pip-eb-head {
+	font-size: 11px;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	opacity: 0.7;
+	padding-bottom: 2px;
+	border-bottom: 1px solid var(--color-border-light-tertiary, rgba(128, 128, 128, 0.3));
+}
+#scorpious-pipboy-encounter-builder .pip-eb-row > * { min-width: 0; }
+#scorpious-pipboy-encounter-builder .pip-eb-weight { text-align: center; }
+/* Notes span the full row on a second line. */
+#scorpious-pipboy-encounter-builder .pip-eb-notes {
+	grid-column: 1 / -1;
+	font-size: 11px;
+	opacity: 0.9;
+}
+#scorpious-pipboy-encounter-builder button.pip-eb-remove {
+	width: auto;
+	padding: 0 6px;
+	line-height: 1.6;
+}
+#scorpious-pipboy-encounter-builder .pip-eb-row:not(.pip-eb-head) {
+	padding-bottom: 5px;
+	border-bottom: 1px dotted var(--color-border-light-tertiary, rgba(128, 128, 128, 0.25));
+}
+
+#scorpious-pipboy-encounter-builder .pip-eb-inuse { color: var(--color-text-emphatic, inherit); opacity: 0.85; }
+#scorpious-pipboy-encounter-builder .pip-eb-notinuse {
+	border-left: 3px solid var(--color-level-warning, #b8860b);
+	padding-left: 8px;
+}
+
+/* --- standing RETURN TO MAP control ----------------------------------------- */
+/* Pinned top-centre for as long as an encounter is open, because the way back
+   cannot live only in a chat card that scrolls away. Sits below the travel
+   counter (z 70) so the two never fight. */
+.pip-return-banner {
+	position: fixed;
+	/* Placement comes from the chosen snap anchor, set inline. */
+	z-index: 60;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 8px;
+	border: 1px solid #2f6f4b;
+	border-radius: 4px;
+	background: rgba(13, 22, 17, 0.95);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+	color: #d3e6d7;
+	font-family: "Consolas", "Lucida Console", ui-monospace, monospace;
+	font-size: 11px;
+	pointer-events: auto;
+}
+.pip-return-label {
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: #ffb642;
+	white-space: nowrap;
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+.pip-return-label i { opacity: 0.6; margin-right: 2px; }
+.pip-return-banner.dragging { cursor: grabbing; opacity: 0.9; }
+.pip-return-banner.dragging .pip-return-label { cursor: grabbing; }
+.pip-return-banner button {
+	font-family: inherit !important;
+	font-size: 10px !important;
+	font-weight: 700 !important;
+	letter-spacing: 1px !important;
+	line-height: 1.7 !important;
+	height: auto !important;
+	min-height: 0 !important;
+	width: auto !important;
+	margin: 0 !important;
+	padding: 1px 10px !important;
+	border: 1px solid transparent !important;
+	border-radius: 2px !important;
+	background: #45e07f !important;
+	color: #06120b !important;
+	box-shadow: none !important;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.pip-return-banner button:hover { filter: brightness(1.12); }
+.pip-return-banner button.pip-return-dismiss {
+	background: transparent !important;
+	color: #8fa895 !important;
+	border-color: rgba(47, 111, 75, 0.5) !important;
+	padding: 1px 6px !important;
+}
+
+/* --- snap targets for the RETURN banner ------------------------------------- */
+/* Ghost outlines of every position the banner can lock to, shown only while
+   dragging. Follows the visual grammar Calendaria uses for its own snapping:
+   a dashed accent outline that fades in, and a glow on the thing being moved. */
+#pip-return-targets {
+	position: fixed;
+	inset: 0;
+	z-index: 59;
+	pointer-events: none;
+}
+#pip-return-targets .pip-return-target {
+	position: fixed;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 2rem;
+	min-width: 11rem;
+	padding: 0 0.75rem;
+	border: 2px dashed #2f6f4b;
+	border-radius: 6px;
+	background: rgba(69, 224, 127, 0.1);
+	color: #8fa895;
+	font-family: "Consolas", "Lucida Console", ui-monospace, monospace;
+	font-size: 9px;
+	letter-spacing: 2px;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+#pip-return-targets .pip-return-target.visible { opacity: 1; }
+#pip-return-targets .pip-return-target.active {
+	border-color: #45e07f;
+	background: rgba(69, 224, 127, 0.22);
+	color: #d3e6d7;
+	box-shadow: 0 0 10px rgba(69, 224, 127, 0.35);
+}
+
+/* the banner itself, once it is over a target */
+.pip-return-banner.near-snap {
+	border-color: #45e07f;
+	box-shadow:
+		0 0 10px rgba(0, 0, 0, 0.5),
+		0 0 8px rgba(69, 224, 127, 0.6);
+	animation: pip-return-wobble 0.15s ease-in-out infinite;
+}
+@keyframes pip-return-wobble {
+	0%, 100% { rotate: -0.4deg; }
+	50% { rotate: 0.4deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.pip-return-banner.near-snap { animation: none; }
+	#pip-return-targets .pip-return-target { transition: none; }
+}

@@ -1,0 +1,107 @@
+<div class="standard-form pip-eb">
+	<p class="hint">
+		Build a wasteland encounter table whose entries open a prepared scene. Entries are saved as an
+		ordinary Roll Table, so weights, draw-without-replacement, and per-Region overrides all work
+		as usual — and the table can be exported to a compendium.
+	</p>
+
+	<div class="form-group">
+		<label>Encounter Table</label>
+		<div class="form-fields">
+			<select name="tableUuid">
+				<option value="">&mdash; None &mdash;</option>
+				{{#each tables}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+			<button type="button" data-action="createTable">
+				<i class="fas fa-plus"></i> New Table
+			</button>
+		</div>
+		<p class="hint">Changing this loads that table for editing. Unsaved edits are discarded.</p>
+	</div>
+
+	{{#if hasTable}}
+	{{#if isTravelTable}}
+	<p class="hint pip-eb-inuse">
+		<i class="fas fa-circle-check"></i>
+		Travel rolls encounters on this table.
+	</p>
+	{{else}}
+	<div class="form-group pip-eb-notinuse">
+		<label>Not in use</label>
+		<div class="form-fields">
+			<button type="button" data-action="useForTravel">
+				<i class="fas fa-right-to-bracket"></i> Use for travel
+			</button>
+		</div>
+		<p class="hint">
+			Travel currently rolls on {{#if travelTableName}}<strong>{{travelTableName}}</strong>{{else}}no table{{/if}}.
+			Regions with their own table always override this.
+		</p>
+	</div>
+	{{/if}}
+
+	<div class="pip-eb-rows">
+		<div class="pip-eb-row pip-eb-head">
+			<span>Encounter</span>
+			<span class="pip-eb-weight">Weight</span>
+			<span>Scene</span>
+			<span>Playlist</span>
+			<span>Journal</span>
+			<span class="pip-eb-remove"></span>
+		</div>
+
+		{{#each rows}}
+		<div class="pip-eb-row">
+			<input type="text" name="row.{{index}}.name" value="{{name}}" placeholder="Raider ambush" />
+
+			<input type="number" class="pip-eb-weight" name="row.{{index}}.weight"
+				value="{{weight}}" min="1" step="1" />
+
+			<select name="row.{{index}}.sceneUuid">
+				{{#each scenes}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+
+			<select name="row.{{index}}.playlistUuid">
+				{{#each playlists}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+
+			<select name="row.{{index}}.journalUuid">
+				{{#each journals}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+
+			<button type="button" class="pip-eb-remove" data-action="removeRow" data-index="{{index}}"
+				data-tooltip="Remove this encounter">
+				<i class="fas fa-trash"></i>
+			</button>
+
+			<input type="text" class="pip-eb-notes" name="row.{{index}}.notes" value="{{notes}}"
+				placeholder="GM notes — tactics, numbers, read-aloud" />
+		</div>
+		{{else}}
+		<p class="hint">No encounters yet. Add one below.</p>
+		{{/each}}
+	</div>
+
+	<div class="form-group">
+		<div class="form-fields">
+			<button type="button" data-action="addRow">
+				<i class="fas fa-plus"></i> Add Encounter
+			</button>
+		</div>
+	</div>
+	{{else}}
+	<p class="hint">Choose a table above, or create a new one to begin.</p>
+	{{/if}}
+
+	<footer class="form-footer">
+		<button type="submit"><i class="fas fa-floppy-disk"></i> Save Table</button>
+	</footer>
+</div>
