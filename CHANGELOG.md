@@ -3,6 +3,15 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-08-30
+
+### Changed
+
+- **Now requires Scorpious187's Module Library**, installed automatically as a
+  dependency. The library hosts the family update notifier, so Pip-Boy can tell
+  you about its own releases; without it the module's entry in the shared update
+  feed was read by nothing.
+
 ## [1.3.0] — 2026-08-29
 
 ### Added
