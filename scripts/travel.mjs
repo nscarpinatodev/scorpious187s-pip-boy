@@ -237,8 +237,9 @@ export class PipBoyTravel {
 				log.push(check.entry);
 
 				// The clock moves with the party: one advance as each hex is
-				// crossed. (Subdividing this to animate the clock *within* a hex
-				// is what made the calendar strobe, so it stays at hex grain.)
+				// crossed. Animating it *within* a hex — by hand, or through
+				// Calendaria's smooth advancement — makes the scene lighting
+				// recalculate on every step and strobe, so it stays at hex grain.
 				const hexSecondsOfTime = Math.round(hexHours * SECONDS_PER_HOUR);
 				await this.#advanceTime(hexSecondsOfTime);
 				secondsAdvanced += hexSecondsOfTime;
@@ -277,7 +278,12 @@ export class PipBoyTravel {
 	 * write. Any other calendar module (or none) falls back to core
 	 * `game.time.advance`, which they all follow.
 	 *
-	 * @param {number} seconds
+	 * One clean jump per call. Calendaria's smooth advancement was tried here
+	 * and withdrawn: it works by issuing `game.time.advance` once per step, and
+	 * every one of those makes the scene lighting recalculate — so any setting
+	 * fine enough to read as smooth also strobed.
+	 *
+	 * @param {number} seconds  How far to move the clock. May be negative.
 	 */
 	static async #advanceTime(seconds) {
 		if (seconds === 0) return;

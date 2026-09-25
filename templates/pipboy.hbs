@@ -10,6 +10,12 @@
 			<header class="pip-header">
 				<span class="pip-name">{{actor.name}}</span>
 				<span class="pip-level">LVL {{data.level}}</span>
+				{{#if canConfigureSheet}}
+				<button type="button" class="pip-sheet-config" data-action="configureSheet"
+					data-tooltip="Sheet configuration — switch back to the standard sheet">
+					<i class="fas fa-gear"></i>
+				</button>
+				{{/if}}
 			</header>
 
 			<nav class="pip-tabs">

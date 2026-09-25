@@ -1,6 +1,13 @@
 {{!-- STATUS: HP, condition (limbs), SPECIAL, rads & needs --}}
 <div class="pip-status">
 
+	{{#if canLevelUp}}
+	<button type="button" class="pip-levelup-btn" data-action="levelUp"
+		data-tooltip="Enough XP for level {{data.nextLevel}} — open the advancement wizard">
+		<i class="fas fa-arrow-up-right-dots"></i> LEVEL UP
+	</button>
+	{{/if}}
+
 	<div class="pip-hp-block">
 		<div class="pip-hp-label">
 			<span>HP</span>

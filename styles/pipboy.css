@@ -219,6 +219,306 @@
 @keyframes pip-boot-cursor { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pip-boot-init::after { animation: none; } }
 
+/* --- level-up wizard ------------------------------------------------------ */
+/* Drawn over the CRT like the boot sequence: levelling up belongs on the
+   Pip-Boy's own screen, and the casing's lower readout shows perk text. */
+.pipboy-levelup {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	background: var(--pip-bg);
+	color: var(--pip);
+	text-shadow: 0 0 4px var(--pip-glow);
+	font-size: calc(12px * var(--pip-ui-scale, 1));
+}
+.pip-lu {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 8px 12px 10px;
+	box-sizing: border-box;
+}
+.pip-lu-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border-bottom: 1px solid var(--pip-dim);
+	padding-bottom: 3px;
+	letter-spacing: 2px;
+}
+.pip-lu-title { font-weight: 700; flex: 1; }
+.pip-lu-steps { display: flex; gap: 4px; font-size: calc(6px * var(--pip-ui-scale, 1)); }
+.pip-lu-steps i { opacity: 0.25; }
+.pip-lu-steps i.done { opacity: 0.6; }
+.pip-lu-steps i.here { opacity: 1; text-shadow: 0 0 6px var(--pip-glow); }
+.pip-lu-close {
+	background: none;
+	border: none;
+	width: auto;
+	padding: 0;
+	color: var(--pip-dim);
+	cursor: pointer;
+}
+.pip-lu-close:hover { color: var(--pip); text-shadow: 0 0 6px var(--pip-glow); }
+
+.pip-lu-body { flex: 1; overflow-y: auto; padding: 6px 2px; min-height: 0; }
+
+/* Step 1 — the new level */
+.pip-lu-welcome { text-align: center; padding-top: 6px; }
+.pip-lu-bignum {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	font-size: calc(38px * var(--pip-ui-scale, 1));
+	font-weight: 700;
+	line-height: 1;
+}
+.pip-lu-bignum .pip-lu-from { opacity: 0.45; }
+.pip-lu-bignum .pip-lu-to { text-shadow: 0 0 14px var(--pip-glow); }
+.pip-lu-bignum i { font-size: calc(16px * var(--pip-ui-scale, 1)); opacity: 0.6; }
+.pip-lu-grants {
+	list-style: none;
+	margin: 14px auto 0;
+	padding: 0;
+	display: inline-block;
+	text-align: left;
+}
+.pip-lu-grants li { margin: 4px 0; }
+.pip-lu-grants i { width: 1.2em; opacity: 0.8; }
+.pip-lu-xp { margin-top: 14px; opacity: 0.6; letter-spacing: 1px; }
+
+/* Step 2 — skills */
+.pip-lu-points {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	border-bottom: 1px solid var(--pip-dim);
+	padding-bottom: 4px;
+	margin-bottom: 4px;
+	letter-spacing: 1px;
+}
+.pip-lu-pool { font-weight: 700; }
+.pip-lu-pool.spent { opacity: 0.5; }
+.pip-lu-bonus {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: calc(10px * var(--pip-ui-scale, 1));
+	opacity: 0.85;
+}
+.pip-lu-bonus-val { min-width: 1.4em; text-align: center; }
+
+.pip-lu-skills, .pip-lu-perks { list-style: none; margin: 0; padding: 0; }
+.pip-lu-skill {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 2px;
+	border-bottom: 1px solid rgba(53, 255, 123, 0.12);
+}
+.pip-lu-skill-name { flex: 1; }
+.pip-lu-skill.tagged .pip-lu-skill-name { font-weight: 700; }
+.pip-lu-skill-attr { opacity: 0.5; font-size: calc(9px * var(--pip-ui-scale, 1)); }
+.pip-lu-skill-rank { min-width: 4.5em; text-align: right; }
+.pip-lu-skill-rank i { font-size: calc(8px * var(--pip-ui-scale, 1)); opacity: 0.6; margin: 0 2px; }
+.pip-lu-old { opacity: 0.45; }
+.pip-lu-from-perk {
+	font-size: calc(8px * var(--pip-ui-scale, 1));
+	letter-spacing: 1px;
+	padding: 0 3px;
+	border: 1px solid var(--pip-dim);
+	opacity: 0.8;
+}
+.pip-lu-skill.raised .pip-lu-new { font-weight: 700; text-shadow: 0 0 8px var(--pip-glow); }
+
+/* Step 3 — perks */
+.pip-lu-perk {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 4px;
+	border: 1px solid transparent;
+	cursor: pointer;
+}
+.pip-lu-perk:hover { border-color: var(--pip-dim); }
+.pip-lu-perk.selected { border-color: var(--pip); box-shadow: 0 0 8px var(--pip-glow) inset; }
+.pip-lu-perk img {
+	width: calc(22px * var(--pip-ui-scale, 1));
+	height: calc(22px * var(--pip-ui-scale, 1));
+	object-fit: contain;
+	filter: drop-shadow(0 0 2px var(--pip-glow));
+}
+.pip-lu-perk-name { flex: 1; }
+.pip-lu-perk-rank {
+	margin-left: 6px;
+	opacity: 0.55;
+	font-size: calc(9px * var(--pip-ui-scale, 1));
+	letter-spacing: 1px;
+}
+.pip-lu-caveat {
+	font-size: calc(9px * var(--pip-ui-scale, 1));
+	opacity: 0.55;
+	font-style: italic;
+}
+.pip-lu-reqs { display: flex; gap: 3px; flex: 0 0 auto; }
+.pip-lu-req {
+	font-size: calc(8px * var(--pip-ui-scale, 1));
+	letter-spacing: 1px;
+	padding: 0 3px;
+	border: 1px solid var(--pip-dim);
+	opacity: 0.75;
+}
+/* Locked perks stay on the list so a player can see what they are working
+   towards; red marks the requirement that is missing. */
+.pip-lu-req.bad { border-color: #ff5f4d; color: #ff7a6b; opacity: 1; }
+.pip-lu-perk.unmet { opacity: 0.7; cursor: not-allowed; }
+.pip-lu-perk.unmet .pip-lu-perk-name,
+.pip-lu-perk.unmet .pip-lu-perk-rank { color: #ff7a6b; text-shadow: none; }
+.pip-lu-perk.unmet img { filter: grayscale(1) brightness(0.8); }
+.pip-lu-perk.unmet:hover { border-color: #ff5f4d; }
+.pip-lu-perk-counts {
+	display: flex;
+	gap: 10px;
+	margin: 0 0 4px;
+	font-size: calc(9px * var(--pip-ui-scale, 1));
+	letter-spacing: 2px;
+}
+.pip-lu-count-locked { color: #ff7a6b; }
+.pip-lu-tick { opacity: 0; }
+.pip-lu-perk.selected .pip-lu-tick { opacity: 1; }
+
+/* Step 3b — perk effect */
+.pip-lu-effect-perk {
+	margin: 0 0 6px;
+	font-weight: 700;
+	letter-spacing: 1px;
+}
+.pip-lu-effect-perk i { opacity: 0.7; margin-right: 4px; }
+.pip-lu-field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 4px 0;
+}
+.pip-lu-field > span {
+	width: 9em;
+	flex: 0 0 auto;
+	opacity: 0.7;
+	letter-spacing: 1px;
+	font-size: calc(10px * var(--pip-ui-scale, 1));
+	text-transform: uppercase;
+}
+.pip-lu-field select,
+.pip-lu-field input {
+	flex: 1;
+	height: auto;
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--pip-dim);
+	color: var(--pip);
+	font: inherit;
+	padding: 1px 4px;
+}
+.pip-lu-field select:focus,
+.pip-lu-field input:focus {
+	border-color: var(--pip);
+	box-shadow: 0 0 6px var(--pip-glow);
+	outline: none;
+}
+.pip-lu-field option { background: #0b1a0f; color: var(--pip); }
+.pip-lu-effect-summary {
+	margin: 8px 0 4px;
+	padding: 4px 6px;
+	border: 1px solid var(--pip-dim);
+	background: rgba(0, 0, 0, 0.3);
+	letter-spacing: 1px;
+}
+.pip-lu-effect-tools { display: flex; gap: 6px; align-items: center; }
+.pip-lu-toggle {
+	background: none;
+	border: 1px solid transparent;
+	color: var(--pip-dim);
+	font: inherit;
+	font-size: calc(10px * var(--pip-ui-scale, 1));
+	letter-spacing: 1px;
+	width: auto;
+	padding: 2px 6px;
+	cursor: pointer;
+}
+.pip-lu-toggle.on { color: var(--pip); }
+.pip-lu-toggle:hover { border-color: var(--pip-dim); }
+.pip-lu-note code {
+	background: rgba(0, 0, 0, 0.4);
+	padding: 0 3px;
+	border: 1px solid var(--pip-dim);
+}
+
+/* Step 4 — confirmation */
+.pip-lu-line {
+	display: flex;
+	gap: 10px;
+	margin: 0 0 6px;
+	border-bottom: 1px solid rgba(53, 255, 123, 0.12);
+	padding-bottom: 4px;
+}
+.pip-lu-line > span:first-child {
+	width: 6em;
+	opacity: 0.6;
+	letter-spacing: 1px;
+	flex: 0 0 auto;
+}
+.pip-lu-line i { font-size: calc(8px * var(--pip-ui-scale, 1)); opacity: 0.6; margin: 0 2px; }
+
+.pip-lu-note { opacity: 0.75; margin: 8px 0; }
+.pip-lu-warn { color: #ffb84d; text-shadow: 0 0 4px rgba(255, 184, 77, 0.5); }
+
+/* Footer */
+.pip-lu-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border-top: 1px solid var(--pip-dim);
+	padding-top: 6px;
+}
+.pip-lu-spacer { flex: 1; }
+.pip-lu-btn {
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--pip-dim);
+	color: var(--pip);
+	font: inherit;
+	letter-spacing: 1px;
+	padding: 2px 10px;
+	width: auto;
+	cursor: pointer;
+	text-shadow: 0 0 4px var(--pip-glow);
+}
+.pip-lu-btn:hover { border-color: var(--pip); box-shadow: 0 0 6px var(--pip-glow); }
+.pip-lu-apply { font-weight: 700; }
+
+/* The STATUS-tab button that opens it */
+.pip-levelup-btn {
+	width: 100%;
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--pip);
+	color: var(--pip);
+	font: inherit;
+	font-weight: 700;
+	letter-spacing: 2px;
+	padding: 3px 0;
+	margin-bottom: 6px;
+	cursor: pointer;
+	text-shadow: 0 0 6px var(--pip-glow);
+	animation: pip-levelup-pulse 1.8s ease-in-out infinite;
+}
+.pip-levelup-btn:hover { box-shadow: 0 0 12px var(--pip-glow); }
+@keyframes pip-levelup-pulse {
+	50% { box-shadow: 0 0 10px var(--pip-glow); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.pip-levelup-btn { animation: none; }
+}
+
 /* curved glass vignette */
 .pipboy-glass {
 	position: absolute;
@@ -248,13 +548,36 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
+	gap: 8px;
 	letter-spacing: 1px;
 	text-transform: uppercase;
 	border-bottom: 1px solid var(--pip-dim);
 	padding-bottom: 2px;
 }
-.pip-name { font-weight: 700; }
+.pip-name { font-weight: 700; flex: 1; }
 .pip-level { opacity: 0.85; font-size: calc(11px * var(--pip-ui-scale, 1)); }
+
+/* Sheet configuration. The Pip-Boy hides its window header, so when it is a
+   player's character sheet this is the only way back to the standard one. */
+.pip-sheet-config {
+	flex: 0 0 auto;
+	width: auto;
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin: 0;
+	line-height: 1;
+	color: var(--pip-dim);
+	cursor: pointer;
+	opacity: 0.7;
+	font-size: calc(11px * var(--pip-ui-scale, 1));
+	transition: opacity 120ms ease, color 120ms ease, text-shadow 120ms ease;
+}
+.pip-sheet-config:hover {
+	opacity: 1;
+	color: var(--pip);
+	text-shadow: 0 0 6px var(--pip-glow);
+}
 
 /* --- tab bar -------------------------------------------------------------- */
 .pip-tabs {
@@ -599,7 +922,10 @@
 .pip-skill-rank { font-weight: 700; min-width: 14px; text-align: right; }
 .pip-skill.tagged .pip-skill-rank { color: var(--pip); }
 .pip-skill-attrs { grid-column: 1 / -1; display: none; gap: 3px; padding: 3px 0 4px; }
-.pip-skill.show-attrs .pip-skill-attrs { display: flex; }
+.pip-skill.show-attrs .pip-skill-attrs { display: flex; align-items: center; }
+/* rank stepper, pushed to the right of the attribute letters */
+.pip-skill-edit { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.pip-skill-edit-val { min-width: 1.4em; text-align: center; font-weight: 700; }
 .pip-attr-pick {
 	flex: 1; padding: 2px 0; background: transparent; border: 1px solid var(--pip-dim);
 	color: var(--pip); font-family: inherit; font-size: calc(10px * var(--pip-ui-scale, 1)); font-weight: 700; cursor: pointer;
@@ -718,7 +1044,7 @@
 }
 .pip-edit-label { font-size: calc(9px * var(--pip-ui-scale, 1)); letter-spacing: 1px; opacity: 0.75; }
 .pip-edit-flyout input {
-	width: 64px;
+	width: 56px;
 	height: auto;
 	background: rgba(0, 0, 0, 0.4);
 	border: 1px solid var(--pip-dim);
@@ -728,6 +1054,34 @@
 	text-shadow: 0 0 4px var(--pip-glow);
 }
 .pip-edit-flyout input:focus { border-color: var(--pip); box-shadow: 0 0 6px var(--pip-glow); outline: none; }
+/* The fly-out has its own ± buttons, so the browser's hairline spinner — which
+   doesn't take the CRT colours anyway — is suppressed. */
+.pip-edit-flyout input { -moz-appearance: textfield; appearance: textfield; }
+.pip-edit-flyout input::-webkit-outer-spin-button,
+.pip-edit-flyout input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+.pip-edit-step {
+	flex: 0 0 auto;
+	width: calc(20px * var(--pip-ui-scale, 1));
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--pip-dim);
+	color: var(--pip);
+	font: inherit;
+	font-weight: 700;
+	line-height: 1.4;
+	padding: 0;
+	cursor: pointer;
+	text-shadow: 0 0 4px var(--pip-glow);
+	user-select: none;
+}
+.pip-edit-step:hover:not(:disabled) {
+	border-color: var(--pip);
+	box-shadow: 0 0 6px var(--pip-glow);
+}
+.pip-edit-step:active:not(:disabled) { background: var(--pip-dim); color: var(--pip-bg); }
+.pip-edit-step:disabled { opacity: 0.3; cursor: default; text-shadow: none; }
 .pip-edit-ok {
 	background: none;
 	border: 1px solid var(--pip-dim);
@@ -1245,7 +1599,6 @@
    reels that spin up and clunk into place. Fully self-contained so no UI
    module's chrome leaks in. */
 #pip-travel-dial.pip-dial {
-	--pip-dial-digit: 46px;
 	position: fixed;
 	top: 12vh;
 	left: 50%;
@@ -1298,8 +1651,10 @@
 	letter-spacing: 2px;
 }
 
-/* the lit window the reels turn behind */
-#pip-travel-dial .pip-dial-reels {
+/* the lit window the reels turn behind — shared by the travel counter and the
+   XP award screen, which sets a smaller --pip-dial-digit */
+.pip-dial-reels {
+	--pip-dial-digit: 46px;
 	display: flex;
 	justify-content: center;
 	gap: 5px;
@@ -1311,16 +1666,16 @@
 		inset 0 3px 10px rgba(0, 0, 0, 0.95),
 		inset 0 0 22px rgba(255, 182, 66, 0.12);
 }
-#pip-travel-dial .pip-dial-reel {
+.pip-dial-reel {
 	position: relative;
-	width: 34px;
+	width: calc(var(--pip-dial-digit) * 0.74);
 	height: var(--pip-dial-digit);
 	overflow: hidden;
 	border-radius: 2px;
 	background: linear-gradient(180deg, #1b2015 0%, #2a3220 50%, #1b2015 100%);
 }
 /* glass curvature over the reel */
-#pip-travel-dial .pip-dial-reel::after {
+.pip-dial-reel::after {
 	content: "";
 	position: absolute;
 	inset: 0;
@@ -1331,13 +1686,13 @@
 		rgba(0, 0, 0, 0) 68%,
 		rgba(0, 0, 0, 0.72) 100%);
 }
-#pip-travel-dial .pip-dial-strip { will-change: transform; }
-#pip-travel-dial .pip-dial-digit {
+.pip-dial-strip { will-change: transform; }
+.pip-dial-digit {
 	display: block;
 	height: var(--pip-dial-digit);
 	line-height: var(--pip-dial-digit);
 	text-align: center;
-	font-size: 32px;
+	font-size: calc(var(--pip-dial-digit) * 0.7);
 	font-weight: 700;
 	color: #ffc457;
 	text-shadow: 0 0 9px rgba(255, 176, 60, 0.6);
@@ -1550,3 +1905,135 @@
 	.pip-return-banner.near-snap { animation: none; }
 	#pip-return-targets .pip-return-target { transition: none; }
 }
+
+/* retarget control on V.A.T.S. cards */
+.vats-block button.vats-retarget {
+	background: transparent !important;
+	color: var(--vats-accent) !important;
+	border: 1px solid var(--vats-edge) !important;
+	padding: 1px 6px !important;
+	flex: 0 0 auto;
+}
+.vats-block button.vats-retarget:hover:not(:disabled) {
+	background: var(--vats-panel) !important;
+	border-color: var(--vats-accent) !important;
+	filter: none;
+}
+
+/* --- XP award screen ------------------------------------------------------ */
+/* The same Vault-Tec casing as the travel counter, with the reels showing the
+   running total rather than a d100 roll. */
+.application.pip-xp-award {
+	--color-window-background: #232d21;
+	font-family: "Consolas", "Lucida Console", ui-monospace, monospace;
+}
+.application.pip-xp-award .window-content {
+	background: linear-gradient(180deg, #33402f 0%, #232d21 46%, #1a2219 100%);
+	color: #9fb89b;
+	padding: 10px 12px 12px;
+}
+.pip-xp { display: flex; flex-direction: column; gap: 10px; }
+
+.pip-xp-total {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 14px;
+}
+.pip-xp-total .pip-dial-reels { --pip-dial-digit: 34px; }
+.pip-xp-total-label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 10px;
+	letter-spacing: 3px;
+	text-transform: uppercase;
+}
+.pip-xp-each { color: #ffb642; letter-spacing: 2px; }
+
+.pip-xp-section { display: flex; flex-direction: column; gap: 3px; }
+.pip-xp-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 10px;
+	letter-spacing: 3px;
+	border-bottom: 1px solid #46543f;
+	padding-bottom: 2px;
+}
+.pip-xp-head-tools { display: flex; gap: 4px; }
+.pip-xp-head button,
+.pip-xp-split {
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid #46543f;
+	color: #9fb89b;
+	font: inherit;
+	font-size: 9px;
+	letter-spacing: 2px;
+	padding: 1px 6px;
+	width: auto;
+	cursor: pointer;
+}
+.pip-xp-head button:hover,
+.pip-xp-split:hover { border-color: #ffb642; color: #ffc457; }
+.pip-xp-split.on { color: #ffc457; border-color: #ffb642; }
+
+.pip-xp-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 190px;
+	overflow-y: auto;
+}
+.pip-xp-row {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding: 2px 3px;
+	cursor: pointer;
+	opacity: 0.5;
+	border: 1px solid transparent;
+}
+.pip-xp-row:hover { border-color: #46543f; }
+.pip-xp-row.on { opacity: 1; }
+.pip-xp-row > i { width: 1em; color: #ffb642; }
+.pip-xp-row img {
+	width: 22px;
+	height: 22px;
+	object-fit: contain;
+	border: none;
+}
+.pip-xp-name { flex: 1; color: #cfe0cb; }
+.pip-xp-meta { font-size: 9px; letter-spacing: 1px; opacity: 0.7; }
+.pip-xp-row.survived .pip-xp-meta { color: #ffb642; }
+.pip-xp-val {
+	min-width: 3.5em;
+	text-align: right;
+	color: #ffc457;
+	font-weight: 700;
+}
+.pip-xp-empty { opacity: 0.6; padding: 4px 3px; font-style: italic; }
+
+.pip-xp-foot { display: flex; }
+.pip-xp-award {
+	flex: 1;
+	background: rgba(0, 0, 0, 0.35);
+	border: 1px solid #ffb642;
+	color: #ffc457;
+	font: inherit;
+	font-weight: 700;
+	letter-spacing: 3px;
+	padding: 5px 0;
+	cursor: pointer;
+	text-shadow: 0 0 8px rgba(255, 176, 60, 0.5);
+}
+.pip-xp-award:hover:not(:disabled) { box-shadow: 0 0 12px rgba(255, 176, 60, 0.35); }
+.pip-xp-award:disabled { opacity: 0.35; cursor: default; border-color: #46543f; color: #9fb89b; }
+
+/* chat cards */
+.pip-xp-card h3, .pip-levelup-card h3 { margin: 0 0 4px; letter-spacing: 2px; }
+.pip-xp-card ul { margin: 4px 0 0; padding-left: 18px; }
+.pip-xp-foes { opacity: 0.75; font-style: italic; margin: 0 0 4px; }
+.pip-xp-ready { color: #b8860b; letter-spacing: 1px; }
+.pip-lu-card-name { margin: 0 0 6px; opacity: 0.8; }

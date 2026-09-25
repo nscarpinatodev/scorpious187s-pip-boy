@@ -3,6 +3,103 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] — 2026-09-24
+
+### Added
+
+- **The Pip-Boy can be your character sheet.** It is now registered as a real
+  Foundry sheet for `character` and `robot` actors, so any player who owns their
+  character can pick it from **Sheet Configuration** and have it open on every
+  click of their token or their name in the directory. It is not a default:
+  nobody is switched over without choosing it.
+  - A **gear** in the Pip-Boy's own top bar opens Sheet Configuration, because
+    the casing hides the window header the gear normally lives in. Without it
+    the Pip-Boy would be a one-way door — chosen as your sheet with no way back
+    to the system's own.
+  - The Token HUD button and the sheet are the **same window**: opening from the
+    HUD routes through the document's sheet when the Pip-Boy is the sheet, so a
+    character never ends up with two Pip-Boys on screen.
+- **XP awards when a combat ends.** Ending a combat totals the XP of the NPCs
+  and creatures that were in it and opens a Vault-Tec tally for the GM, with the
+  running total on the same mechanical reels the travel counter uses.
+  - The XP per foe is the system's own derived reward value, from that NPC's
+    level and category (minion / normal / mighty / legendary) — nothing new to
+    fill in on a statblock.
+  - Foes marked **defeated** are ticked by default; anything that fled or was
+    talked down can be ticked back in, and the total re-spins as you go.
+  - The award is **split between the characters** by default, or can go **full
+    to each**; flipped per award or set as the default.
+  - A chat card records who received what, and flags anyone who has just crossed
+    their next-level threshold.
+  - Available by hand as well:
+    `game.modules.get("scorpious187s-pip-boy").api.awardXp()`.
+- **Level-up advancement wizard.** When a character banks enough XP, a pulsing
+  **LEVEL UP** appears on STATUS and opens a four-step wizard drawn over the CRT
+  — the new level, skill ranks, a perk, then confirmation. Nothing is written to
+  the actor until the last step is confirmed, and the whole thing can be
+  cancelled.
+  - **Skills** — a pool of ranks (1 per level by default) spent freely across
+    skills up to a cap of 6. Both are world settings. A **Bonus** stepper adds
+    points for that level alone, for a feature such as Tag! that grants extra
+    ranks.
+  - **Perks** — the eligible list comes from the system's own perk manager, so
+    level, per-rank level steps for multi-rank perks, attribute minimums, and
+    magazine prerequisites are all honoured. Hovering a perk shows its
+    description in the casing's lower readout. Requirements the system records
+    but cannot check — *not ghouls*, *companions only* — are shown as advisory
+    notes rather than silently ignored.
+  - **Max HP is never written.** The system derives it as
+    `END + LUC + (level − 1) − radiation + bonus`, so raising the level does it;
+    the wizard only shows the consequence. What happens to *current* HP is a
+    setting: leave it, +1 to match, or heal to full as in the games.
+  - **Perk effects, built as the perk is taken.** Perks like Intense Training,
+    Life Giver and Tag! change a score, but need a *choice* first, so the system
+    ships them with no Active Effect. The wizard asks the question, builds the
+    effect, attaches it to the perk item, and **remembers the shape of it** so
+    the next character to take that perk gets it without being asked again.
+    - Configured out of the box, from the perks' own printed text: **Intense
+      Training**, **Life Giver**, **Tag!** (tags a skill and raises it 2
+      ranks), **Skilled** (2 ranks to spend), **Toughness**, **Rad
+      Resistance**, **Refractor**, **Snakeater** and **Strong Back**.
+    - Anything else can be built in the wizard: pick a target (a SPECIAL,
+      max HP, defense, initiative, melee damage, a resistance, luck points,
+      carry weight, or any data path), a mode, and a value.
+    - Values may be **live references** — Life Giver uses
+      `@attributes.end.value`, so it tracks Endurance rather than freezing the
+      number it had on the day.
+    - The effect goes on the *perk item*, so removing the perk removes it, and
+      taking another rank adds another effect rather than editing the first.
+    - **SPECIAL cap** — an attribute already at the cap (10 by default, a
+      setting) can't be raised again. The check is against the character's
+      *current* value, so an earlier Intense Training counts towards it.
+  - **Locked perks stay on the list, in red.** The system's own helper drops
+    every perk whose requirements aren't met, so there was no way to see what a
+    character was working towards. The wizard now reads the whole perk
+    compendium itself and shows everything still takeable, eligible first, with
+    locked ones in red and the missing requirement marked. Perks already at
+    maximum rank are still dropped — there is nothing left to take.
+  - **Perk requirements are shown and enforced.** Each perk in the list
+    carries its requirements as chips — `LVL 4`, `INT 6`, `MAGAZINE` — and
+    anything unmet is greyed out and refuses to be selected. The wizard
+    checks them itself rather than trusting the list it was handed, so it
+    also catches the per-rank level step on multi-rank perks and blocks
+    robot-excluded perks on robots. Requirements and the cap are re-checked
+    when CONFIRM is pressed, so nothing gets through by skipping a step.
+  - A chat card records the level, the perk, and the skills raised.
+- **Quantity editor** in the inventory right-click menu, for any stackable item.
+  It opens the same fly-out used by RADS, CAPS, and XP.
+
+### Changed
+
+- **The numeric fly-out editor gained `−` / `+` buttons** on either side of the
+  field — so RADS, LUCK, CAPS, fatigue, intoxication, level, XP, power-armor
+  piece health, and item quantity are all adjustable without typing. Hold a
+  button to run the number, hold **Shift** to step by 10, and the buttons dim at
+  the value's limits. The value is still written on ✓ or Enter, so a run of
+  presses is one update. The browser's own spinner is hidden.
+- **V.A.T.S. retarget.** Attack and damage cards carry a target reticle: target
+  a token, click it, and the roll is re-aimed without rolling again. GM only.
+
 ## [1.4.0] — 2026-08-30
 
 ### Changed

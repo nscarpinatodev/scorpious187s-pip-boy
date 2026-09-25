@@ -14,7 +14,7 @@
 		{{#each data.skills}}
 		<li class="pip-skill{{#if tagged}} tagged{{/if}}" data-item-id="{{id}}">
 			<span class="pip-skill-name" data-action="rollSkill"
-				data-tooltip="Roll {{name}} ({{attribute}}) — right-click to pick attribute">{{name}}</span>
+				data-tooltip="Roll {{name}} ({{attribute}}) — right-click for attribute and rank">{{name}}</span>
 			<span class="pip-skill-attr">{{attribute}}</span>
 			<span class="pip-skill-rank">{{rank}}</span>
 			{{#if tagged}}<i class="fas fa-tag pip-tag" data-tooltip="Tagged"></i>{{/if}}
@@ -23,6 +23,13 @@
 				<button type="button" class="pip-attr-pick" data-action="rollSkill" data-attr="{{key}}"
 					data-tooltip="Roll with {{label}}">{{letter}}</button>
 				{{/each}}
+				<span class="pip-skill-edit">
+					<button type="button" class="pip-edit-step" data-action="adjustSkill"
+						data-delta="-1" data-tooltip="Lower the rank">&minus;</button>
+					<span class="pip-skill-edit-val">{{rank}}</span>
+					<button type="button" class="pip-edit-step" data-action="adjustSkill"
+						data-delta="1" data-tooltip="Raise the rank">+</button>
+				</span>
 			</span>
 		</li>
 		{{else}}

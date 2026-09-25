@@ -265,6 +265,62 @@ export class PipBoyVats {
 		};
 	}
 
+	/** Retargeting is the GM's call alone: re-judging a roll against a different
+	 *  token decides whether it lands, so it is not a player's to make. */
+	static #canRetarget() {
+		return game.user.isGM;
+	}
+
+	/** The retarget control. Foundry's own ping icon, as the PF2e tools use it
+	 *  for exactly this. */
+	static #retargetButton(message) {
+		if (!this.#canRetarget()) return "";
+		return '<button type="button" class="vats-retarget" data-tooltip="Target a token, then click to re-aim this roll">'
+			+ '<i class="fa-solid fa-bullseye"></i></button>';
+	}
+
+	/**
+	 * Point an existing roll at whatever is targeted now, and re-evaluate it.
+	 *
+	 * The card keeps its dice: a retarget re-judges the roll that was made
+	 * rather than rolling again. On an attack that means the successes are
+	 * measured against the new target's Defense; on damage it means the maths
+	 * are redone against the new target's resistances.
+	 */
+	static async #retarget(message) {
+		if (!this.#canRetarget()) return;
+		const targets = [...game.user.targets]
+			.map((t) => t.document?.uuid)
+			.filter(Boolean);
+		if (!targets.length) {
+			ui.notifications?.warn("Target a token first, then click retarget.");
+			return;
+		}
+
+		const update = { [`flags.${MODULE_ID}.targets`]: targets };
+		// A difficulty the GM set by hand belonged to the old target, so drop it
+		// and let the new target's Defense stand — that is the point of
+		// retargeting. Setting it again afterwards still overrides.
+		if (message.flags?.falloutroll?.diceFace === "d20") {
+			update[`flags.${MODULE_ID}.-=difficulty`] = null;
+		}
+		await message.update(update);
+
+		const names = targets
+			.map((uuid) => fromUuidSync(uuid)?.name)
+			.filter(Boolean)
+			.join(", ");
+		ui.notifications?.info(`Re-aimed at ${names || "the new target"}.`);
+	}
+
+	/** Wire the retarget control wherever it was rendered. */
+	static #wireRetarget(message, root) {
+		root?.querySelector?.(".vats-retarget")?.addEventListener("click", (event) => {
+			event.currentTarget.disabled = true;
+			this.#retarget(message);
+		});
+	}
+
 	/** Attack cards — and their re-roll cards — get a verdict strip:
 	 *  successes vs difficulty → HIT/MISS, excess successes shown as AP. The
 	 *  GM can change the difficulty; the verdict re-renders for everyone. */
@@ -299,6 +355,7 @@ export class PipBoyVats {
 			<div class="vats-hdr">
 				<span class="vats-title">V.A.T.S.${attackData.isReroll ? " · RE-ROLL" : ""}</span>
 				<span class="vats-verdict ${verdict.hit ? "hit" : "miss"}">${verdict.hit ? "HIT" : "MISS"}</span>
+				${this.#retargetButton(message)}
 			</div>
 			<div class="vats-detail">
 				<span class="vats-stat">${verdict.successes} success${verdict.successes === 1 ? "" : "es"}</span>
@@ -308,6 +365,7 @@ export class PipBoyVats {
 			</div>`;
 		html.querySelector(".message-content")?.appendChild(strip);
 
+		this.#wireRetarget(message, strip);
 		strip.querySelector(".vats-difficulty")?.addEventListener("change", (event) => {
 			// Stored on the message so every client re-renders the verdict.
 			message.update({ [`flags.${MODULE_ID}.difficulty`]: Number(event.currentTarget.value) });
@@ -330,7 +388,22 @@ export class PipBoyVats {
 		if (falloutRoll?.diceFace !== "d6" || !weapon) return;
 
 		const context = this.#resolveContext(message);
-		if (!context.targets.length) return;
+		if (!context.targets.length) {
+			// Nothing to apply to, but the roll can still be re-aimed — which is
+			// the recovery path for a damage roll made without a target.
+			if (!this.#canRetarget()) return;
+			const empty = document.createElement("div");
+			empty.className = "vats-block";
+			empty.innerHTML = `
+				<div class="vats-hdr">
+					<span class="vats-title">V.A.T.S.</span>
+					<span class="vats-loc">no target</span>
+					${this.#retargetButton(message)}
+				</div>`;
+			html.querySelector(".message-content")?.appendChild(empty);
+			this.#wireRetarget(message, empty);
+			return;
+		}
 
 		const types = Object.keys(weapon.system?.damage?.damageType ?? {})
 			.filter((t) => weapon.system.damage.damageType[t]);
@@ -469,6 +542,7 @@ export class PipBoyVats {
 				<span class="vats-title">V.A.T.S.</span>
 				<span class="vats-loc">${LOCATION_LABELS[context.locationKey]}${context.locationSource === "assumed" ? " (assumed)" : ""}</span>
 				${missed ? '<span class="vats-verdict miss">MISSED</span>' : ""}
+				${this.#retargetButton(message)}
 				${typePicker}
 			</div>
 			${manualEffects.length
@@ -478,6 +552,7 @@ export class PipBoyVats {
 			${isGM && context.targets.length > 1
 				? '<button type="button" class="vats-apply-all">APPLY TO ALL</button>' : ""}`;
 
+		this.#wireRetarget(message, block);
 		block.querySelector(".vats-type")?.addEventListener("change", (event) => {
 			this.#buildBlock(message, block, context, types, event.currentTarget.value);
 		});

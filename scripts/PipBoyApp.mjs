@@ -1,8 +1,9 @@
 import { MODULE_ID, TINT_COLORS, FALLOUT_GREEN } from "./constants.mjs";
 import { rollWeaponAttack, rollWeaponDamage, rollSkill } from "./attacks.mjs";
 import { PipBoyRadio } from "./radio.mjs";
+import { PipBoyLevelUp } from "./levelup.mjs";
 
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** Ordered SPECIAL definition: [key, full label, single letter]. */
 const SPECIAL = [
@@ -28,15 +29,34 @@ const TABS = [
 /**
  * The Pip-Boy window. One instance per actor; opened from the Token HUD.
  */
-export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
+export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	/** @type {Map<string, PipBoyApp>} live instances keyed by actor id */
 	static #instances = new Map();
 
 	#activeTab = "status";
 
-	constructor(actor, options = {}) {
-		super(options);
-		this.actor = actor;
+	/**
+	 * A DocumentSheetV2, so Foundry can offer the Pip-Boy in its sheet picker:
+	 * a player who owns their character can then make it their sheet from the
+	 * header gear, which is as close to a per-player default as core allows
+	 * (the choice lives on the actor, and characters are one per player).
+	 *
+	 * Core builds sheets as `new cls({document})`, so the actor arrives in the
+	 * options rather than positionally. `open()` still passes it positionally
+	 * for the Token HUD, so both shapes are accepted.
+	 */
+	constructor(actorOrOptions, options = {}) {
+		const isActor = actorOrOptions instanceof Actor;
+		super(isActor ? { ...options, document: actorOrOptions } : (actorOrOptions ?? {}));
+		// Track every instance however it was built, so a sheet opened by core
+		// still gets the live refreshes `refreshFor` drives.
+		PipBoyApp.#instances.set(this.document.id, this);
+	}
+
+	/** The character this Pip-Boy belongs to. An alias, so the rest of the
+	 *  class reads exactly as it did before this became a sheet. */
+	get actor() {
+		return this.document;
 	}
 
 	static DEFAULT_OPTIONS = {
@@ -48,6 +68,12 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		position: {
 			width: 600,
 			height: "auto",
+		},
+		// Nothing in the Pip-Boy is a form field bound to the document — every
+		// edit goes through an explicit update — so the sheet never submits.
+		form: {
+			submitOnChange: false,
+			closeOnSubmit: false,
 		},
 		actions: {
 			switchTab: PipBoyApp.#onSwitchTab,
@@ -66,12 +92,14 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			openItem: PipBoyApp.#onOpenItem,
 			showInfo: PipBoyApp.#onShowInfo,
 			rollSkill: PipBoyApp.#onRollSkill,
+			adjustSkill: PipBoyApp.#onAdjustSkill,
 			attackWeapon: PipBoyApp.#onAttackWeapon,
 			damageWeapon: PipBoyApp.#onDamageWeapon,
 			useConsumable: PipBoyApp.#onUseConsumable,
 			rollItem: PipBoyApp.#onRollItem,
 			toggleEquip: PipBoyApp.#onToggleEquip,
 			openSettings: PipBoyApp.#onOpenSettings,
+			levelUp: PipBoyApp.#onLevelUp,
 			toggleLight: PipBoyApp.#onToggleLight,
 			tuneStation: PipBoyApp.#onTuneStation,
 			nextTrack: PipBoyApp.#onNextTrack,
@@ -83,11 +111,27 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		main: { template: `modules/${MODULE_ID}/templates/pipboy.hbs` },
 	};
 
+	/** Core concatenates the class chain's `classes`, so every DocumentSheetV2
+	 *  picks up a generic "sheet" class. Drop it: the system's sheet styling is
+	 *  written for its own markup and bleeds into the CRT. */
+	_initializeApplicationOptions(options) {
+		const opts = super._initializeApplicationOptions(options);
+		opts.classes = opts.classes.filter((c) => c !== "sheet");
+		return opts;
+	}
+
 	/** Remembered scroll position per tab, so re-renders don't jump to the top. */
 	#scroll = {};
 
 	/** Id of the item/skill whose description is shown in the lower readout. */
 	#infoItemId = null;
+
+	/** Skill rows whose attribute/rank strip is open. Kept on the app, not in
+	 *  the DOM, so editing a rank doesn't close the strip it was edited from. */
+	#openSkills = new Set();
+
+	/** The level-up wizard while it is open over the screen. */
+	#levelUpWizard = null;
 
 	/** MAP tab state: "world" | "local", and the pan/zoom view transform. */
 	#mapMode = null;
@@ -117,11 +161,36 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.render();
 	}
 
+	/** True when this actor's configured sheet IS the Pip-Boy — checked without
+	 *  constructing the sheet, so a normal actor doesn't build one just to ask. */
+	static isSheetFor(actor) {
+		// Mirrors ClientDocument#_getSheetClass: per-document override first,
+		// then the world default for the type, then core's own fallbacks.
+		const sheets = CONFIG.Actor.sheetClasses?.[actor?.type] ?? {};
+		const override = actor?.getFlag("core", "sheetClass") ?? null;
+		if ((override !== null) && (override in sheets)) return sheets[override].cls === PipBoyApp;
+		const classes = Object.values(sheets);
+		if (!classes.length) return false;
+		const chosen = classes.find((s) => s.default)
+			?? classes.find((s) => s.canBeDefault)
+			?? classes.at(-1);
+		return chosen?.cls === PipBoyApp;
+	}
+
 	/** Open (or focus) the Pip-Boy for an actor. */
 	static open(actor) {
 		if (!actor) {
 			ui.notifications?.warn("No character is available for the Pip-Boy.");
 			return null;
+		}
+		// When the Pip-Boy is this actor's sheet, go through the document's own
+		// sheet instance — otherwise the HUD and the sheet would each open their
+		// own window for the same character.
+		if (PipBoyApp.isSheetFor(actor)) {
+			const sheet = actor.sheet;
+			sheet.render({ force: true });
+			sheet.bringToFront?.();
+			return sheet;
 		}
 		const existing = PipBoyApp.#instances.get(actor.id);
 		if (existing) {
@@ -133,7 +202,6 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			id: `${MODULE_ID}-${actor.id}`,
 			position: { width: Math.round(PipBoyApp.BASE_WIDTH * PipBoyApp.uiScale) },
 		});
-		PipBoyApp.#instances.set(actor.id, app);
 		app.render({ force: true });
 		return app;
 	}
@@ -215,8 +283,14 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		// Silent by default; sounds if a custom close.wav is configured.
 		PipBoyApp.playSound("close");
 		this.#endBootSequence();
+		this.#levelUpWizard?.close();
+		this.#levelUpWizard = null;
 		this.#closeEditFlyout();
-		PipBoyApp.#instances.delete(this.actor.id);
+		// Another Pip-Boy may have been opened for the same actor since; only
+		// clear the map when this is the instance it points at.
+		if (PipBoyApp.#instances.get(this.document.id) === this) {
+			PipBoyApp.#instances.delete(this.document.id);
+		}
 		return super._onClose(options);
 	}
 
@@ -234,6 +308,14 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		context.frameColor = game.settings.get(MODULE_ID, "frameColor") ?? "green";
 		context.showScanlines = game.settings.get(MODULE_ID, "scanlines") ?? true;
 		context.uiScale = PipBoyApp.uiScale;
+		// Sheet configuration is normally reached from the window header, which
+		// this window hides to show only the casing. Without a gear of its own
+		// the Pip-Boy would be a one-way door: pick it as your sheet and there
+		// is no way back to the system's. Gated exactly as core gates its own
+		// header control, so a locked sheet stays locked.
+		context.canLevelUp = actor.isOwner && PipBoyLevelUp.isReady(actor);
+		context.canConfigureSheet = this.options.sheetConfig && this.isEditable
+			&& !!actor.collection?.has(actor.id) && !actor.flags.core?.sheetLock;
 		// POWER lamp glows while this actor's token light is on.
 		const myToken = canvas?.scene ? this.#findMyToken(canvas.scene) : null;
 		context.lightOn = myToken?.getFlag(MODULE_ID, "lightOn") === true;
@@ -783,6 +865,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		return {
 			effects,
 			level: sys.level?.value ?? 1,
+			nextLevel: (Number(sys.level?.value) || 1) + 1,
 			currentXP: sys.level?.currentXP ?? 0,
 			nextLevelXP: sys.level?.nextLevelXP ?? 0,
 			origin: sys.origin ?? "",
@@ -942,6 +1025,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (this.#bootEl && !this.#bootEl.isConnected) {
 			this.element?.querySelector(".pipboy-screen")?.appendChild(this.#bootEl);
 		}
+		// Same for the level-up wizard: an actor update mid-wizard must not
+		// throw away choices the player has made but not yet confirmed.
+		this.#levelUpWizard?.reattach();
 
 		// Track each pane's scroll so it can be restored across re-renders.
 		for (const pane of this.element.querySelectorAll(".pip-pane")) {
@@ -954,11 +1040,15 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
 		this.#applyActiveTab(this.element);
 
-		// Right-click a skill to reveal its attribute picker.
+		// Right-click a skill to reveal its attribute picker and rank editor.
 		for (const row of this.element.querySelectorAll(".pip-skill")) {
+			const id = row.dataset.itemId;
+			if (this.#openSkills.has(id)) row.classList.add("show-attrs");
 			row.addEventListener("contextmenu", (event) => {
 				event.preventDefault();
-				row.classList.toggle("show-attrs");
+				const open = row.classList.toggle("show-attrs");
+				if (open) this.#openSkills.add(id);
+				else this.#openSkills.delete(id);
 			});
 		}
 
@@ -1019,8 +1109,11 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 	#editFlyoutCleanup = null;
 
 	#closeEditFlyout() {
-		this.#editFlyoutCleanup?.();
+		// Cleared first: if a cleanup ever throws, the pop-up must not be left
+		// permanently wedged shut with its document listener still attached.
+		const cleanup = this.#editFlyoutCleanup;
 		this.#editFlyoutCleanup = null;
+		cleanup?.();
 	}
 
 	/** Fly-out editor for a `.pip-editable` element: number input prefilled with
@@ -1050,7 +1143,11 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		flyout.className = "pip-edit-flyout";
 		flyout.innerHTML = `
 			<span class="pip-edit-label">${host.dataset.editLabel ?? ""}</span>
+			<button type="button" class="pip-edit-step" data-step="-1" tabindex="-1"
+				aria-label="Decrease">&minus;</button>
 			<input type="number" step="1" min="${min}"${max != null ? ` max="${max}"` : ""} value="${current}" />
+			<button type="button" class="pip-edit-step" data-step="1" tabindex="-1"
+				aria-label="Increase">+</button>
 			<button type="button" class="pip-edit-ok" aria-label="Apply"><i class="fas fa-check"></i></button>`;
 		// The fly-out lives on the CRT content layer, NOT inside the scrollable
 		// tab pane: in the pane it gets clipped at the pane box and its right
@@ -1087,17 +1184,63 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		}
 
 		const input = flyout.querySelector("input");
+		/** Stops any press-and-hold repeat still running. */
+		const stopSteppers = [];
 		const onDocDown = (event) => {
 			if (!flyout.contains(event.target)) this.#closeEditFlyout();
 		};
 		document.addEventListener("pointerdown", onDocDown, true);
 		this.#editHost = host;
 		this.#editFlyoutCleanup = () => {
+			for (const stop of stopSteppers) stop();
 			document.removeEventListener("pointerdown", onDocDown, true);
 			if (tooltipText && host.isConnected) host.dataset.tooltip = tooltipText;
 			flyout.remove();
 			this.#editHost = null;
 		};
+
+		// The ± buttons only move the field — the value is still written on ✓ or
+		// Enter, so a run of presses is one update rather than one per press.
+		const clamp = (v) => {
+			let n = Math.max(Number(min), Number.isFinite(v) ? v : Number(min));
+			if (max != null) n = Math.min(Number(max), n);
+			return n;
+		};
+		const syncSteps = () => {
+			const v = clamp(Math.round(Number(input.value)));
+			for (const btn of flyout.querySelectorAll(".pip-edit-step")) {
+				const dir = Number(btn.dataset.step);
+				btn.disabled = (dir < 0 && v <= Number(min))
+					|| (dir > 0 && max != null && v >= Number(max));
+			}
+		};
+		const stepBy = (dir, big) => {
+			input.value = String(clamp(Math.round(Number(input.value) || 0) + dir * (big ? 10 : 1)));
+			syncSteps();
+		};
+		for (const btn of flyout.querySelectorAll(".pip-edit-step")) {
+			const dir = Number(btn.dataset.step);
+			let delay = null;
+			let repeat = null;
+			const stop = () => {
+				clearTimeout(delay);
+				clearInterval(repeat);
+				delay = repeat = null;
+			};
+			stopSteppers.push(stop);
+			btn.addEventListener("pointerdown", (event) => {
+				if (event.button !== 0) return;
+				const big = event.shiftKey;
+				stepBy(dir, big);
+				// Hold to run the number up, so a stack of 200 isn't 200 clicks.
+				delay = setTimeout(() => { repeat = setInterval(() => stepBy(dir, big), 70); }, 400);
+			});
+			for (const type of ["pointerup", "pointerleave", "pointercancel"]) {
+				btn.addEventListener(type, stop);
+			}
+		}
+		input.addEventListener("input", syncSteps);
+		syncSteps();
 
 		const commit = async () => {
 			let value = Math.max(Number(min), Number(input.value));
@@ -1141,10 +1284,19 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 				<i class="fas fa-star"></i> ${isFavourite ? "Unfavorite" : "Favorite"}</button>`
 			: "";
 
+		// Ammo, aid and junk carry a count; a unique weapon or suit of armour
+		// does not, so the entry only appears where it means something.
+		const stackable = typeof item.system?.quantity === "number";
+		const quantityEntry = stackable
+			? `<button type="button" data-menu="quantity">
+				<i class="fas fa-layer-group"></i> Quantity (${item.system.quantity})&hellip;</button>`
+			: "";
+
 		const menu = document.createElement("div");
 		menu.className = "pip-context-menu";
 		menu.innerHTML = `
 			<div class="pip-menu-title">${item.name}</div>
+			${quantityEntry}
 			${favouriteEntry}
 			<button type="button" data-menu="drop"><i class="fas fa-hand-holding"></i> Drop</button>
 			<button type="button" data-menu="transfer"><i class="fas fa-people-arrows"></i> Transfer&hellip;</button>
@@ -1184,7 +1336,15 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 			if (!action) return;
 			this.#closeEditFlyout();
 			PipBoyApp.playSound("select");
-			if (action === "favorite") {
+			if (action === "quantity") {
+				// Hand off to the fly-out editor: it already clamps to the
+				// screen, commits on Enter, and cancels on click-away.
+				row.dataset.editItemId = item.id;
+				row.dataset.editPath = "system.quantity";
+				row.dataset.editLabel = "QUANTITY";
+				row.dataset.editMin = "0";
+				this.#openEditFlyout(row);
+			} else if (action === "favorite") {
 				await item.update({ "system.favorite": !item.system.favorite });
 				this.render();
 			} else if (action === "drop") await this.#dropItem(item);
@@ -1528,6 +1688,43 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		PipBoyRadio.stop();
 	}
 
+	/** LEVEL UP on the STATUS tab: open the advancement wizard over the screen.
+	 *  Nothing is written to the actor until the player confirms. */
+	static async #onLevelUp(event) {
+		event.stopPropagation();
+		// Already running: leave it alone rather than throwing away choices.
+		if (this.#levelUpWizard?.rendered) return;
+		// A wizard that has already run holds the last level's choices and its
+		// eligible-perk list, both of which are now stale — so every level-up
+		// gets a fresh one.
+		this.#levelUpWizard?.close();
+		this.#levelUpWizard = new PipBoyLevelUp(this);
+		PipBoyApp.playSound("select");
+		await this.#levelUpWizard.open();
+	}
+
+	/** Write arbitrary details into the casing's lower readout. Used by the
+	 *  level-up wizard for compendium perks, which aren't the actor's items and
+	 *  so can't go through `#renderInfo`. */
+	showReadout({ title = "", img = "", html = "" } = {}) {
+		const panel = this.element?.querySelector(".pipboy-lower");
+		if (!panel) return;
+		// Leaving #infoItemId set would let the next item re-render clobber this.
+		this.#infoItemId = null;
+		panel.dataset.empty = "false";
+		panel.querySelector(".pip-info-title").textContent = title;
+		const imgEl = panel.querySelector(".pip-info-img");
+		if (img) {
+			imgEl.src = img;
+			imgEl.hidden = false;
+		}
+		else {
+			imgEl.hidden = true;
+			imgEl.removeAttribute("src");
+		}
+		panel.querySelector(".pip-info-body").innerHTML = html;
+	}
+
 	/** Dial wheel on the casing: open the settings sheet on this module's tab. */
 	static async #onOpenSettings() {
 		const sheet = game.settings.sheet;
@@ -1653,6 +1850,20 @@ export class PipBoyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (!item) return;
 		this.#infoItemId = item.id;
 		this.#renderInfo();
+	}
+
+	/** The rank stepper in a skill's expanded strip. Deliberately uncapped: the
+	 *  system enforces no maximum on a skill, and the level-up cap is a rule
+	 *  about advancement, not about what a rank is allowed to be. */
+	static async #onAdjustSkill(event, target) {
+		event.stopPropagation();
+		const item = this.#getItem(target);
+		if (!item) return;
+		const current = Number(item.system?.value) || 0;
+		const value = Math.max(0, current + (Number(target.dataset.delta) || 0));
+		if (value === current) return;
+		PipBoyApp.playSound("select");
+		await item.update({ "system.value": value });
 	}
 
 	static #onRollSkill(event, target) {

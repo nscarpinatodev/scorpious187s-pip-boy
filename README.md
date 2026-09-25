@@ -32,6 +32,19 @@ Select a **character** token, then click the **Pip-Boy button** in the left colu
 of the **Token HUD**. (You can also call `game.modules.get("scorpious187s-pip-boy").api.open(actor)`
 from a macro.)
 
+### Making it your character sheet
+
+The Pip-Boy is also a real Foundry sheet for `character` and `robot` actors, so a
+player can have it open on every click of their token or their name in the Actors
+directory instead of the system sheet. Open the actor, click the **gear** in the
+Pip-Boy's top bar (or in the standard sheet's window header), and choose
+**Pip-Boy** in **Sheet Configuration**.
+
+The choice is stored on the actor, so each player's own character can use a
+different sheet — the module never changes the world default. The gear in the
+Pip-Boy's top bar is how you switch back: the casing hides the window header the
+gear usually lives in.
+
 ---
 
 ## Features
@@ -173,6 +186,50 @@ Right-click an inventory item for:
   you don't own the target).
 - **Delete** — with confirmation.
 
+### XP awards
+
+When the GM ends a combat, the module totals the XP of every NPC and creature
+that was in it and opens an award tally. The total spins up on the same
+mechanical reels as the travel counter.
+
+- Each foe is worth the reward value **the system already derives** from its
+  level and category — minion, normal, mighty or legendary. There is nothing
+  extra to fill in on a statblock.
+- Foes marked **defeated** are ticked by default. Anything that fled, surrendered
+  or was talked past can be ticked in or out, and the total re-spins.
+- The award goes **full to each character** or is **split** between them; flip it
+  per award, or set the default in the settings.
+- A chat card records who got what, and marks anyone who has just crossed their
+  next-level threshold — which is also when their **LEVEL UP** button lights up.
+
+To open it by hand (no combat needed):
+`game.modules.get("scorpious187s-pip-boy").api.awardXp()`.
+
+### Level-up wizard
+
+When a character's XP reaches the next threshold, a pulsing **LEVEL UP** button
+appears at the top of the STATUS tab. It opens a four-step wizard drawn over the
+CRT: the new level, skill ranks, a perk, then a confirmation summary. **Nothing
+is written to the actor until you confirm**, and closing the wizard discards the
+lot.
+
+- **Skills** — a pool of ranks to spend freely, up to a rank cap. Both the pool
+  size (default 1 per level) and the cap (default 6) are world settings. The
+  **Bonus** stepper adds points for that level alone, for a feature such as
+  Tag! that grants extra ranks.
+- **Perks** — the whole perk list is shown, eligible ones first and locked ones
+  in red with the missing requirement marked, so you can see what you are
+  working towards. Level requirements, the per-rank level step for multi-rank
+  perks, attribute minimums, and magazine prerequisites are all checked. Hover a perk to read it
+  in the casing's lower readout. A perk the system records as restricted but
+  cannot actually check — *not ghouls*, *companions only* — carries an advisory
+  note instead of being hidden.
+- **Max HP** rises by 1 and the wizard never writes it: the system derives max
+  HP from the level. What happens to **current** HP is a setting — leave it, +1
+  to match the new maximum, or heal to full as the games do.
+
+A chat card records the level reached, the perk taken, and the skills raised.
+
 ### V.A.T.S. — damage automation
 The Fallout 2d20 system rolls dice but applies nothing. **V.A.T.S.**
 (Vault-Tec Assisted Targeting System) closes that gap by building on the
@@ -234,6 +291,11 @@ World (GM):
 - **V.A.T.S. Damage Automation**, **Injury Prompts**, **Power-Armor Ablation**,
   **Auto-Roll Damage**, **Bonus Dice for AP** and its **cost model**.
 - **Major / Minor Action Tracking**.
+- **Award XP When Combat Ends**, and whether an award is **split between**
+  the characters or given **in full to each**.
+- **Level Up** — **Skill Ranks per Level** (default 1), **Skill Rank Cap**
+  (default 6), **SPECIAL Cap** (default 10), and what levelling does to
+  **Current HP**.
 - **Pip-Boy Light** bright and dim radii.
 - **Custom Sound Folder** — a folder in your user data holding replacement
   audio (see *Custom sounds* above).

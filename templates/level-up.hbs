@@ -1,0 +1,276 @@
+{{!-- Level-up wizard, drawn over the CRT. Four steps: the new level, skill
+      ranks, a perk, then confirmation. --}}
+<div class="pip-lu">
+
+	<header class="pip-lu-head">
+		<span class="pip-lu-title">LEVEL UP</span>
+		<span class="pip-lu-steps">
+			{{#each steps}}
+			<i class="fas fa-circle{{#if done}} done{{/if}}{{#if here}} here{{/if}}"></i>
+			{{/each}}
+		</span>
+		<button type="button" class="pip-lu-close" data-lu="cancel"
+			data-tooltip="Cancel — nothing is written until you confirm">
+			<i class="fas fa-xmark"></i>
+		</button>
+	</header>
+
+	<div class="pip-lu-body">
+
+		{{#if isStep.welcome}}
+		<div class="pip-lu-welcome">
+			<div class="pip-lu-bignum">
+				<span class="pip-lu-from">{{level}}</span>
+				<i class="fas fa-arrow-right-long"></i>
+				<span class="pip-lu-to">{{newLevel}}</span>
+			</div>
+			<ul class="pip-lu-grants">
+				<li><i class="fas fa-heart-pulse"></i> Max HP {{hpMax}}
+					<i class="fas fa-arrow-right-long"></i> {{newHpMax}}</li>
+				<li><i class="fas fa-list-check"></i>
+					{{pointsTotal}} skill {{#if (eq pointsTotal 1)}}rank{{else}}ranks{{/if}}
+					to spend (cap {{cap}})</li>
+				<li><i class="fas fa-star"></i> One perk</li>
+			</ul>
+			<p class="pip-lu-xp">XP {{currentXP}} / {{nextLevelXP}}</p>
+		</div>
+		{{/if}}
+
+		{{#if isStep.skills}}
+		<div class="pip-lu-points">
+			<span class="pip-lu-pool{{#unless pointsLeft}} spent{{/unless}}">
+				{{pointsLeft}} / {{pointsTotal}} POINTS LEFT
+			</span>
+			<span class="pip-lu-bonus">
+				Bonus
+				<button type="button" class="pip-edit-step" data-lu="bonus" data-delta="-1"
+					data-tooltip="Fewer bonus points" {{#unless bonus}}disabled{{/unless}}>&minus;</button>
+				<span class="pip-lu-bonus-val">{{bonus}}</span>
+				<button type="button" class="pip-edit-step" data-lu="bonus" data-delta="1"
+					data-tooltip="Extra points from a feature such as Tag!">+</button>
+			</span>
+		</div>
+		<ul class="pip-lu-skills">
+			{{#each skills}}
+			<li class="pip-lu-skill{{#if added}} raised{{/if}}{{#if tagged}} tagged{{/if}}">
+				<span class="pip-lu-skill-name">{{name}}</span>
+				{{#if fromPerk}}<span class="pip-lu-from-perk"
+					data-tooltip="+{{fromPerk}} from the perk you took — not from your pool">PERK</span>{{/if}}
+				<span class="pip-lu-skill-attr">{{attribute}}</span>
+				<span class="pip-lu-skill-rank">
+					{{#if added}}<span class="pip-lu-old">{{rank}}</span>
+					<i class="fas fa-arrow-right-long"></i>{{/if}}
+					<span class="pip-lu-new">{{newRank}}</span>
+				</span>
+				<button type="button" class="pip-edit-step" data-lu="refund" data-skill-id="{{id}}"
+					data-tooltip="Take the point back" {{#unless canRemove}}disabled{{/unless}}>&minus;</button>
+				<button type="button" class="pip-edit-step" data-lu="spend" data-skill-id="{{id}}"
+					data-tooltip="{{#if atCap}}At the rank cap{{else}}Spend a point{{/if}}"
+					{{#unless canAdd}}disabled{{/unless}}>+</button>
+			</li>
+			{{else}}
+			<li class="pip-empty">This character has no skills.</li>
+			{{/each}}
+		</ul>
+		{{/if}}
+
+		{{#if isStep.perk}}
+		{{#if perksLoading}}
+		<p class="pip-lu-note"><i class="fas fa-spinner fa-spin"></i> Reading the perk registry&hellip;</p>
+		{{/if}}
+		{{#if perkError}}
+		<p class="pip-lu-note pip-lu-warn">
+			<i class="fas fa-triangle-exclamation"></i>
+			The perk registry could not be read. Carry on and add the perk by hand.
+		</p>
+		{{/if}}
+		{{#if noPerks}}
+		<p class="pip-lu-note">
+			No perk meets this character's requirements at level {{newLevel}}.
+			Carry on without one.
+		</p>
+		{{/if}}
+		<ul class="pip-lu-perks">
+			{{#each perks}}
+			<li class="pip-lu-perk{{#if selected}} selected{{/if}}{{#unless met}} unmet{{/unless}}"
+				data-lu="perk" data-perk-id="{{id}}" data-perk-name="{{name}}"
+				{{#unless met}}data-blocker="{{blocker}}"{{/unless}}>
+				<img src="{{img}}" alt="" />
+				<span class="pip-lu-perk-name">
+					{{name}}
+					{{#if multiRank}}<span class="pip-lu-perk-rank">RANK {{rank}}/{{rankMax}}</span>{{/if}}
+				</span>
+				<span class="pip-lu-reqs">
+					{{#each chips}}
+					<span class="pip-lu-req{{#unless ok}} bad{{/unless}}">{{label}}</span>
+					{{/each}}
+				</span>
+				{{#if caveat}}<span class="pip-lu-caveat" data-tooltip="The system cannot check this — {{caveat}}">{{caveat}}</span>{{/if}}
+				<i class="fas fa-check pip-lu-tick"></i>
+			</li>
+			{{/each}}
+		</ul>
+		{{/if}}
+
+		{{#if isStep.effect}}
+		<div class="pip-lu-effect">
+			<p class="pip-lu-effect-perk"><i class="fas fa-star"></i> {{chosenPerk.name}}</p>
+
+			{{#if effectKnown}}
+			{{#if effect.hint}}<p class="pip-lu-note">{{effect.hint}}</p>{{/if}}
+
+			{{#if effectAsksAttr}}
+			<label class="pip-lu-field">
+				<span>Attribute</span>
+				<select data-lu-field="effectAttr">
+					{{#each effectAttrs}}
+					<option value="{{key}}"{{#if selected}} selected{{/if}}>
+						{{label}} ({{value}}){{#if atCap}} — at cap{{/if}}
+					</option>
+					{{/each}}
+				</select>
+			</label>
+			{{#if specialAtCap}}
+			<p class="pip-lu-note pip-lu-warn">
+				<i class="fas fa-triangle-exclamation"></i>
+				That attribute is already at the cap of {{specialCap}}.
+				{{#if allSpecialsCapped}}Every attribute is capped — take a different perk.
+				{{else}}Choose another, or take a different perk.{{/if}}
+			</p>
+			{{/if}}
+			{{/if}}
+
+			{{#if effectAsksSkill}}
+			<label class="pip-lu-field">
+				<span>Skill to tag</span>
+				<select data-lu-field="effectSkillId">
+					<option value="">Choose a skill&hellip;</option>
+					{{#each effectSkills}}
+					<option value="{{id}}"{{#if chosen}} selected{{/if}}>{{name}}</option>
+					{{/each}}
+				</select>
+			</label>
+			{{/if}}
+
+			{{#if effectCustom}}
+			<label class="pip-lu-field">
+				<span>Target</span>
+				<select data-lu-field="target">
+					{{#each effectTargets}}
+					<option value="{{key}}"{{#if selected}} selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</label>
+			{{#if effectIsCustomKey}}
+			<label class="pip-lu-field">
+				<span>Data path</span>
+				<input type="text" data-lu-field="customKey" value="{{effect.customKey}}"
+					placeholder="system.health.bonus" />
+			</label>
+			{{/if}}
+			<label class="pip-lu-field">
+				<span>Mode</span>
+				<select data-lu-field="mode">
+					<option value="add"{{#if (eq effect.mode "add")}} selected{{/if}}>Add</option>
+					<option value="override"{{#if (eq effect.mode "override")}} selected{{/if}}>Override</option>
+				</select>
+			</label>
+			<label class="pip-lu-field">
+				<span>Value</span>
+				<input type="text" data-lu-field="value" value="{{effect.value}}" placeholder="1" />
+			</label>
+			<p class="pip-lu-note">
+				A number, or a live reference such as <code>@attributes.end.value</code> —
+				which tracks the attribute instead of freezing today's number.
+			</p>
+			<label class="pip-lu-field">
+				<span>Extra skill ranks</span>
+				<input type="number" min="0" step="1" data-lu-field="skillPoints"
+					value="{{effect.skillPoints}}" />
+			</label>
+			{{/if}}
+
+			<p class="pip-lu-effect-summary">
+				{{#if effectSummary}}{{effectSummary}}{{else}}<em>No effect.</em>{{/if}}
+			</p>
+
+			<div class="pip-lu-effect-tools">
+				<button type="button" class="pip-lu-btn" data-lu="effectCustom">
+					<i class="fas fa-sliders"></i>
+					{{#if effectCustom}}DONE{{else}}CUSTOMISE{{/if}}
+				</button>
+				{{#if canRemember}}
+				<button type="button" class="pip-lu-toggle{{#if effectRemember}} on{{/if}}"
+					data-lu="effectRemember"
+					data-tooltip="Save this effect against the perk, so the next character to take it gets it automatically">
+					<i class="fas {{#if effectRemember}}fa-square-check{{else}}fa-square{{/if}}"></i>
+					REMEMBER
+				</button>
+				{{/if}}
+			</div>
+			{{else}}
+			<p class="pip-lu-note">
+				No effect is configured for this perk. If it changes a score — a SPECIAL,
+				maximum HP, a resistance — build one here and it will be attached to the
+				perk and remembered for next time.
+			</p>
+			<div class="pip-lu-effect-tools">
+				<button type="button" class="pip-lu-btn" data-lu="effectCustom">
+					<i class="fas fa-plus"></i> ADD AN EFFECT
+				</button>
+			</div>
+			{{/if}}
+		</div>
+		{{/if}}
+
+		{{#if isStep.confirm}}
+		<div class="pip-lu-confirm">
+			<p class="pip-lu-line"><span>LEVEL</span>
+				<strong>{{level}} <i class="fas fa-arrow-right-long"></i> {{newLevel}}</strong></p>
+			<p class="pip-lu-line"><span>MAX HP</span>
+				<strong>{{hpMax}} <i class="fas fa-arrow-right-long"></i> {{newHpMax}}</strong></p>
+			<p class="pip-lu-line"><span>PERK</span>
+				<strong>{{#if chosenPerk}}{{chosenPerk.name}}{{#if chosenPerk.multiRank}} (Rank {{chosenPerk.rank}}){{/if}}{{else}}<em>none</em>{{/if}}</strong></p>
+			{{#if effectSummary}}
+			<p class="pip-lu-line"><span>EFFECT</span><strong>{{effectSummary}}</strong></p>
+			{{/if}}
+			<div class="pip-lu-line pip-lu-skill-summary"><span>SKILLS</span>
+				<div>
+					{{#each chosenSkills}}
+					<div><strong>{{name}}</strong> {{rank}}
+						<i class="fas fa-arrow-right-long"></i> {{newRank}}</div>
+					{{else}}
+					<div><em>none</em></div>
+					{{/each}}
+				</div>
+			</div>
+			{{#if unspent}}
+			<p class="pip-lu-note pip-lu-warn">
+				<i class="fas fa-triangle-exclamation"></i>
+				{{unspent}} skill {{#if (eq unspent 1)}}point is{{else}}points are{{/if}}
+				unspent — they are lost once you confirm.
+			</p>
+			{{/if}}
+		</div>
+		{{/if}}
+
+	</div>
+
+	<footer class="pip-lu-foot">
+		{{#unless isStep.welcome}}
+		<button type="button" class="pip-lu-btn" data-lu="back">
+			<i class="fas fa-chevron-left"></i> BACK
+		</button>
+		{{/unless}}
+		<span class="pip-lu-spacer"></span>
+		{{#if isStep.confirm}}
+		<button type="button" class="pip-lu-btn pip-lu-apply" data-lu="apply">
+			<i class="fas fa-circle-check"></i> CONFIRM
+		</button>
+		{{else}}
+		<button type="button" class="pip-lu-btn" data-lu="next">
+			NEXT <i class="fas fa-chevron-right"></i>
+		</button>
+		{{/if}}
+	</footer>
+</div>

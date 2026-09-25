@@ -1,0 +1,79 @@
+{{!-- XP award tally, shown to the GM when a combat ends. --}}
+<div class="pip-xp">
+
+	<div class="pip-xp-total">
+		{{{reels}}}
+		<div class="pip-xp-total-label">
+			<span>TOTAL XP</span>
+			{{#if split}}
+			<span class="pip-xp-each">{{perHead}} each, split {{takerCount}} ways</span>
+			{{else}}
+			<span class="pip-xp-each">{{perHead}} to each of {{takerCount}}</span>
+			{{/if}}
+		</div>
+	</div>
+
+	<section class="pip-xp-section">
+		<header class="pip-xp-head">
+			<span>OPPOSITION</span>
+			{{#if hasFoes}}
+			<span class="pip-xp-head-tools">
+				<button type="button" data-action="selectDefeated"
+					data-tooltip="Tick only those marked defeated">DEFEATED</button>
+				<button type="button" data-action="selectAll"
+					data-tooltip="Tick or untick everything">ALL</button>
+			</span>
+			{{/if}}
+		</header>
+		<ul class="pip-xp-list">
+			{{#each foes}}
+			<li class="pip-xp-row{{#if include}} on{{/if}}{{#unless defeated}} survived{{/unless}}"
+				data-action="toggleFoe" data-uuid="{{uuid}}">
+				<i class="fas {{#if include}}fa-square-check{{else}}fa-square{{/if}}"></i>
+				<img src="{{img}}" alt="" />
+				<span class="pip-xp-name">{{name}}</span>
+				<span class="pip-xp-meta">
+					LVL {{level}} · {{categoryLabel}}{{#unless defeated}} · survived{{/unless}}
+				</span>
+				<span class="pip-xp-val">{{xp}}</span>
+			</li>
+			{{else}}
+			<li class="pip-xp-empty">No NPCs or creatures in this combat.</li>
+			{{/each}}
+		</ul>
+	</section>
+
+	<section class="pip-xp-section">
+		<header class="pip-xp-head">
+			<span>RECIPIENTS</span>
+			<button type="button" class="pip-xp-split{{#if split}} on{{/if}}"
+				data-action="toggleSplit"
+				data-tooltip="Split the total between them, or give the full total to each">
+				<i class="fas {{#if split}}fa-divide{{else}}fa-equals{{/if}}"></i>
+				{{#if split}}SPLIT{{else}}FULL TO EACH{{/if}}
+			</button>
+		</header>
+		<ul class="pip-xp-list">
+			{{#each recipients}}
+			<li class="pip-xp-row{{#if include}} on{{/if}}"
+				data-action="toggleRecipient" data-uuid="{{uuid}}">
+				<i class="fas {{#if include}}fa-square-check{{else}}fa-square{{/if}}"></i>
+				<img src="{{img}}" alt="" />
+				<span class="pip-xp-name">{{name}}</span>
+				<span class="pip-xp-meta">{{currentXP}} XP</span>
+				<span class="pip-xp-val">{{#if include}}+{{gets}}{{/if}}</span>
+			</li>
+			{{else}}
+			<li class="pip-xp-empty">No characters to award.</li>
+			{{/each}}
+		</ul>
+	</section>
+
+	<footer class="pip-xp-foot">
+		<button type="button" class="pip-xp-award" data-action="award"
+			{{#unless canAward}}disabled{{/unless}}>
+			<i class="fas fa-arrow-up-right-dots"></i>
+			AWARD {{perHead}} XP
+		</button>
+	</footer>
+</div>

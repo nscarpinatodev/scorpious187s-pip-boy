@@ -6,6 +6,7 @@ import { PipBoyTravel } from "./travel.mjs";
 import { EncounterBuilder } from "./EncounterBuilder.mjs";
 import { WorldMapConfig } from "./WorldMapConfig.mjs";
 import { registerTokenHudButton } from "./token-hud.mjs";
+import { PipBoyXpAward } from "./xp-award.mjs";
 
 export { MODULE_ID };
 
@@ -187,6 +188,89 @@ Hooks.once("init", async () => {
 		default: true,
 	});
 
+	// Perk effect definitions built in the level-up wizard, keyed by perk slug.
+	// Not shown in the settings form: it is written and read by the wizard.
+	game.settings.register(MODULE_ID, "perkEffects", {
+		scope: "world",
+		config: false,
+		type: Object,
+		default: {},
+	});
+
+	game.settings.register(MODULE_ID, "levelUpSkillPoints", {
+		name: "Level Up: Skill Ranks per Level",
+		hint: "How many skill ranks a character may raise each level. The wizard also "
+			+ "lets the player add bonus points for that level alone, for a feature "
+			+ "such as Tag! that grants extra ranks.",
+		scope: "world",
+		config: true,
+		type: Number,
+		default: 1,
+	});
+
+	game.settings.register(MODULE_ID, "levelUpSkillCap", {
+		name: "Level Up: Skill Rank Cap",
+		hint: "The highest rank a skill can be raised to in the level-up wizard. The "
+			+ "system itself enforces no maximum.",
+		scope: "world",
+		config: true,
+		type: Number,
+		default: 6,
+	});
+
+	game.settings.register(MODULE_ID, "levelUpSpecialCap", {
+		name: "Level Up: SPECIAL Cap",
+		hint: "The highest a SPECIAL attribute can be raised to by a perk such as "
+			+ "Intense Training. The system enforces no per-attribute maximum of its "
+			+ "own — it budgets the total at creation instead.",
+		scope: "world",
+		config: true,
+		type: Number,
+		default: 10,
+	});
+
+	game.settings.register(MODULE_ID, "levelUpHeal", {
+		name: "Level Up: Current HP",
+		hint: "Maximum HP always rises by 1 with the level (the system derives it). "
+			+ "This decides what happens to CURRENT HP: nothing, +1 to match, or a "
+			+ "full heal as in the games.",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "point",
+		choices: {
+			none: "Leave it alone",
+			point: "+1, matching the new maximum",
+			full: "Heal to full",
+		},
+	});
+
+	game.settings.register(MODULE_ID, "xpOnCombatEnd", {
+		name: "Award XP When Combat Ends",
+		hint: "When the GM ends a combat, total the XP of the NPCs and creatures in "
+			+ "it and open the award screen. The XP comes from each NPC's own reward "
+			+ "value, which the system derives from its level and category.",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "xpSplit", {
+		name: "XP Award: Sharing",
+		hint: "Whether the total is split between the characters or each of them "
+			+ "receives the full amount. The award screen can be flipped either way "
+			+ "for a single award; this is the starting position.",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "split",
+		choices: {
+			split: "Split the total between them",
+			each: "Each character gets the full total",
+		},
+	});
+
 	game.settings.register(MODULE_ID, "radioFolder", {
 		name: "Radio Station Folder",
 		hint: "Playlists inside a playlist folder with this name appear as stations on the "
@@ -328,10 +412,24 @@ Hooks.once("init", async () => {
 	game.modules.get(MODULE_ID).api = {
 		open: (actor) => PipBoyApp.open(actor),
 		radio: PipBoyRadio,
+		awardXp: (combat) => PipBoyXpAward.open(combat),
 	};
+
+	// Offer the Pip-Boy in Foundry's sheet picker, so a player who owns their
+	// character can make it their sheet from the gear in its top bar. Not a
+	// default: nobody is switched over without choosing it.
+	foundry.applications.apps.DocumentSheetConfig.registerSheet(
+		Actor, MODULE_ID, PipBoyApp,
+		{ types: ["character", "robot"], label: "Pip-Boy", makeDefault: false },
+	);
 
 	await foundry.applications.handlebars.loadTemplates(TEMPLATE_PARTIALS);
 });
+
+// XP award. The roster is captured before deletion, while the combatants can
+// still be read, and the tally is offered once the combat is actually gone.
+Hooks.on("preDeleteCombat", (combat) => PipBoyXpAward.snapshot(combat));
+Hooks.on("deleteCombat", (combat) => PipBoyXpAward.onCombatEnd(combat));
 
 Hooks.once("ready", () => {
 	if (game.system.id !== "fallout") {

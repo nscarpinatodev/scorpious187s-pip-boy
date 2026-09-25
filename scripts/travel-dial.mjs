@@ -1,4 +1,5 @@
 import { PipBoyApp } from "./PipBoyApp.mjs";
+import { Reels } from "./reels.mjs";
 
 /**
  * The travel counter — a Vault-Tec encounter check displayed as three
@@ -9,13 +10,6 @@ import { PipBoyApp } from "./PipBoyApp.mjs";
  * d100 result, and the settling animation is what paces the journey.
  */
 
-/** Height of one digit cell, in px. Must match --pip-dial-digit in the CSS. */
-const DIGIT_HEIGHT = 46;
-/** Full 0-9 revolutions before a reel lands, so it reads as a spin-up. */
-const SPIN_CYCLES = 7;
-/** Where each reel lands within the spin budget: left settles first, right
- *  last, so the counter winds down like an odometer. */
-const REEL_STOPS = [0.55, 0.78, 1];
 /** Spin budget when a caller doesn't supply one (ms). */
 const DEFAULT_SPIN = 2000;
 /** Beat after the last reel lands, so the result can be read. */
@@ -43,12 +37,7 @@ export class TravelDial {
 					<span class="pip-dial-title">VAULT-TEC WAYFARER</span>
 					<span class="pip-dial-hex"></span>
 				</div>
-				<div class="pip-dial-reels">
-					${[0, 1, 2].map(() => `
-						<div class="pip-dial-reel">
-							<div class="pip-dial-strip">${this.#stripDigits()}</div>
-						</div>`).join("")}
-				</div>
+				${Reels.markup(3)}
 				<div class="pip-dial-readout">
 					<span class="pip-dial-target"></span>
 					<span class="pip-dial-result"></span>
@@ -66,15 +55,6 @@ export class TravelDial {
 		if (!el?.isConnected) return;
 		el.classList.remove("visible");
 		setTimeout(() => el.remove(), 400);
-	}
-
-	/** Enough repeats of 0-9 that a reel can spin SPIN_CYCLES times and land. */
-	static #stripDigits() {
-		let html = "";
-		for (let i = 0; i <= SPIN_CYCLES + 1; i++) {
-			for (let d = 0; d <= 9; d++) html += `<span class="pip-dial-digit">${d}</span>`;
-		}
-		return html;
 	}
 
 	/**
@@ -99,35 +79,16 @@ export class TravelDial {
 		resultEl.textContent = "";
 		resultEl.className = "pip-dial-result";
 
-		const digits = String(Math.max(0, Math.min(999, value))).padStart(3, "0").split("");
-		const strips = [...el.querySelectorAll(".pip-dial-strip")];
-
-		// Snap every reel back to the top with no transition, force a reflow so
-		// the browser accepts the jump, then run the spin.
-		for (const strip of strips) {
-			strip.style.transition = "none";
-			strip.style.transform = "translateY(0)";
-		}
-		void el.offsetHeight;
-
-		strips.forEach((strip, i) => {
-			const spin = budget * REEL_STOPS[i];
-			const target = ((SPIN_CYCLES * 10) + Number(digits[i])) * DIGIT_HEIGHT;
-			strip.style.transition = `transform ${spin}ms cubic-bezier(0.15, 0.85, 0.2, 1)`;
-			strip.style.transform = `translateY(-${target}px)`;
-			// A mechanical clunk as each reel drops into place.
-			setTimeout(() => PipBoyApp.playSound("rollover"), spin);
-		});
-
 		// Resolves when the reels have landed. Callers may ignore it: the spin
 		// is meant to run alongside the token's movement, not block it.
-		this.#settled = new Promise((resolve) => {
-			setTimeout(() => {
-				resultEl.textContent = hit ? "ENCOUNTER" : "CLEAR";
-				resultEl.classList.add(hit ? "hit" : "clear");
-				if (hit) PipBoyApp.playSound("select");
-				resolve();
-			}, budget);
+		this.#settled = Reels.spin(el.querySelector(".pip-dial-reels"), value, {
+			duration: budget,
+			// A mechanical clunk as each reel drops into place.
+			onLand: () => PipBoyApp.playSound("rollover"),
+		}).then(() => {
+			resultEl.textContent = hit ? "ENCOUNTER" : "CLEAR";
+			resultEl.classList.add(hit ? "hit" : "clear");
+			if (hit) PipBoyApp.playSound("select");
 		});
 		return this.#settled;
 	}
