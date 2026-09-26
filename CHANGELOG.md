@@ -3,6 +3,20 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] — 2026-09-25
+
+### Fixed
+
+- **Configure World Map would not save anything.** *Seconds per Hex* declared
+  `min="0.2"` against `step="0.5"`, so the only values the browser accepted were
+  0.2, 0.7, 1.2, 1.7 and so on — the stored default of 3 was not among them, and
+  no whole number could be typed in. One invalid field blocks an HTML form from
+  submitting at all, so that single box was quietly stopping every other Hex
+  Travel and Encounters setting from being saved. The field now steps in halves
+  from 0.5 to 30, a value stored off that grid is snapped before it reaches the
+  form, and the save clamps to the same range. Present since hex travel arrived
+  in 1.3.0.
+
 ## [1.5.0] — 2026-09-24
 
 ### Added

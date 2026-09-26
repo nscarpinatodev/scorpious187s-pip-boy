@@ -59,7 +59,11 @@ export class WorldMapConfig extends HandlebarsApplicationMixin(ApplicationV2) {
 			travelAnyToken: game.settings.get(MODULE_ID, "travelAnyToken"),
 			travelHexHours: game.settings.get(MODULE_ID, "travelHexHours"),
 			travelMaxHexes: game.settings.get(MODULE_ID, "travelMaxHexes"),
-			travelHexSeconds: game.settings.get(MODULE_ID, "travelHexSeconds"),
+			// Snapped to the input's step grid. A value off the grid — from an
+			// older build, or set through the API — fails HTML5 validation, and
+			// one invalid field blocks the whole form from submitting.
+			travelHexSeconds: Math.max(0.5,
+				Math.round(Number(game.settings.get(MODULE_ID, "travelHexSeconds")) * 2) / 2),
 			encounterPullUsers: game.settings.get(MODULE_ID, "encounterPullUsers"),
 			encounterPreload: game.settings.get(MODULE_ID, "encounterPreload"),
 			encounterChance: game.settings.get(MODULE_ID, "encounterChance"),
@@ -110,7 +114,7 @@ export class WorldMapConfig extends HandlebarsApplicationMixin(ApplicationV2) {
 		await game.settings.set(MODULE_ID, "travelHexHours", Number(d.travelHexHours) || 2);
 		await game.settings.set(MODULE_ID, "travelMaxHexes", Number(d.travelMaxHexes) || 50);
 		await game.settings.set(MODULE_ID, "travelHexSeconds",
-			Math.max(0.2, Number(d.travelHexSeconds) || 3));
+			Math.min(30, Math.max(0.5, Number(d.travelHexSeconds) || 3)));
 		await game.settings.set(MODULE_ID, "encounterTableUuid", d.encounterTableUuid ?? "");
 		await game.settings.set(MODULE_ID, "encounterChance", Number(d.encounterChance) || 0);
 		await game.settings.set(MODULE_ID, "encounterSurvivalReduction",
