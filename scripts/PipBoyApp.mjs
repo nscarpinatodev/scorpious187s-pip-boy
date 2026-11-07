@@ -208,6 +208,16 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		return chosen?.cls === PipBoyApp;
 	}
 
+	/** Render a window and bring it to the front. A window that isn't drawn yet
+	 *  has no element for bringToFront to move, so it waits for that render. */
+	static #raise(app) {
+		const wasRendered = app.rendered;
+		const rendering = app.render({ force: true });
+		if (wasRendered) app.bringToFront?.();
+		else rendering?.then?.(() => { if (app.rendered) app.bringToFront?.(); });
+		return app;
+	}
+
 	/** Open (or focus) the Pip-Boy for an actor. */
 	static open(actor) {
 		if (!actor) {
@@ -217,18 +227,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		// When the Pip-Boy is this actor's sheet, go through the document's own
 		// sheet instance — otherwise the HUD and the sheet would each open their
 		// own window for the same character.
-		if (PipBoyApp.isSheetFor(actor)) {
-			const sheet = actor.sheet;
-			sheet.render({ force: true });
-			sheet.bringToFront?.();
-			return sheet;
-		}
+		if (PipBoyApp.isSheetFor(actor)) return PipBoyApp.#raise(actor.sheet);
 		const existing = PipBoyApp.#instances.get(actor.id);
-		if (existing) {
-			existing.render({ force: true });
-			existing.bringToFront?.();
-			return existing;
-		}
+		if (existing) return PipBoyApp.#raise(existing);
 		const app = new PipBoyApp(actor, {
 			id: `${MODULE_ID}-${actor.id}`,
 			position: { width: Math.round(PipBoyApp.baseWidth * PipBoyApp.uiScale) },

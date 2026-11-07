@@ -3,6 +3,15 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] — 2026-11-07
+
+### Fixed
+
+- Opening the Pip-Boy for the first time when it is the character's sheet (for
+  example from the Sci-Fi Character HUD) no longer throws an error. The window
+  is now brought to the front only once it has been drawn, so `PipBoyApp.open()`
+  returns it and the caller can close it again.
+
 ## [1.6.0] — 2026-11-06
 
 ### Added
