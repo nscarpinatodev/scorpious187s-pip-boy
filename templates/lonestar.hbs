@@ -1,0 +1,205 @@
+{{!-- Scorpious187's Pip Boy — the Lonestar Edition casing. A landscape unit worn
+      across the forearm, drawn in SVG; the screen and the readout are HTML over it.
+      Paint, shading and the plate's title are shared from templates/lonestar-defs.hbs.
+      Coordinates are the drawing's own (1200 x 900); the window shows 100 74 1010 772. --}}
+<div class="pipboy-frame pip-lonestar pip-tint-{{frameColor}}{{#if showScanlines}} pbls-scan{{/if}}{{#unless lonestar.contentOn}} pbls-dark{{/unless}}"
+	style="--pip-ui-scale:{{uiScale}}">
+
+	{{!-- The still parts, drawn once a render and never touched after --}}
+	<svg class="pbls-casing" viewBox="100 74 1010 772" aria-hidden="true" focusable="false">
+		<!-- the forearm's sleeve, running off both sides -->
+		<g mask="url(#pbls-sleeveMask)">
+			<path d="M-40 300 Q600 278 1240 316 V612 Q600 650 -40 628 Z" fill="url(#pbls-sleeve)"/>
+			<path d="M-40 300 Q600 278 1240 316 V612 Q600 650 -40 628 Z" fill="url(#pbls-rib)"/>
+		</g>
+
+		<!-- the clamps that hold it on -->
+		<g class="paint-dark" stroke="#000" stroke-opacity=".6">
+			<rect x="300" y="80" width="140" height="34" rx="8"/><rect x="300" y="806" width="140" height="34" rx="8"/>
+			<rect x="790" y="80" width="140" height="34" rx="8"/><rect x="790" y="806" width="140" height="34" rx="8"/>
+		</g>
+		<g fill="url(#pbls-dome)">
+			<circle cx="316" cy="94" r="5"/><circle cx="424" cy="94" r="5"/><circle cx="806" cy="94" r="5"/><circle cx="914" cy="94" r="5"/>
+			<circle cx="316" cy="826" r="5"/><circle cx="424" cy="826" r="5"/><circle cx="806" cy="826" r="5"/><circle cx="914" cy="826" r="5"/>
+		</g>
+
+		<!-- the body, painted, shaded and worn -->
+		<use href="#pbls-shellPath" class="paint"/>
+		<g clip-path="url(#pbls-shell)">
+			<rect x="0" y="0" width="1200" height="900" fill="url(#pbls-sideShade)"/>
+			<rect x="0" y="100" width="1200" height="720" fill="url(#pbls-shade)"/>
+			<rect width="1200" height="900" filter="url(#pbls-grime)" opacity=".34"/>
+			<rect width="1200" height="900" filter="url(#pbls-scuff)" opacity=".2"/>
+		</g>
+		<use href="#pbls-shellPath" fill="none" stroke="#000" stroke-opacity=".7" stroke-width="3"/>
+		<path d="M146 150 Q146 104 190 104 H1010 Q1052 104 1062 136" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="2"/>
+		<!-- a seam between the screen's half and the controls' half -->
+		<path d="M786 112 V808" stroke="#000" stroke-opacity=".45" stroke-width="2.5"/>
+		<path d="M788.5 112 V808" stroke="#fff" stroke-opacity=".1" stroke-width="1.5"/>
+
+		<!-- the vent on the left -->
+		<g fill="#0d0d0c">
+			{{#each lonestar.vents}}<rect x="150" y="{{this}}" width="38" height="6" rx="3"/>{{/each}}
+		</g>
+
+		<!-- the bezel around the screen -->
+		<rect x="200" y="162" width="568" height="412" rx="44" fill="url(#pbls-bezel)" stroke="#000" stroke-width="2"/>
+		<rect x="201.5" y="163.5" width="565" height="409" rx="43" fill="none" stroke="#fff" stroke-opacity=".12"/>
+		<rect x="209" y="170" width="550" height="394" rx="38" fill="#090908"/>
+		<g fill="url(#pbls-dome)">
+			<circle cx="220" cy="182" r="5"/><circle cx="748" cy="182" r="5"/><circle cx="220" cy="554" r="5"/><circle cx="748" cy="554" r="5"/>
+		</g>
+
+		<!-- the maker's plate, above the screen: the edition's name, stamped -->
+		<g transform="translate(148 56)">
+			<rect x="80" y="61" width="190" height="42" rx="4" class="paint-light" stroke="#000" stroke-opacity=".5"/>
+			<rect x="80" y="61" width="190" height="42" rx="4" fill="url(#pbls-shade)"/>
+			<use href="#pbls-plateTitle" transform="translate(127.5 86.4) scale(0.0235)" fill="#111" opacity=".85"/>
+			<use href="#pbls-plateTitle" transform="translate(126.5 85) scale(0.0235)" fill="#e9e6da"/>
+			<text class="pbls-lettering" x="194" y="98.4" text-anchor="middle" font-size="8.6" letter-spacing="2.6" fill="#000" opacity=".7">LONESTAR EDITION</text>
+			<!-- the lone star -->
+			<path d="M101 70.5 L104.2 78.3 L112.6 78.9 L106.2 84.3 L108.2 92.5 L101 88 L93.8 92.5 L95.8 84.3 L89.4 78.9 L97.8 78.3 Z" fill="#000" opacity=".55"/>
+			<path d="M101 71.5 L103.9 78.6 L111.5 79.2 L105.7 84.1 L107.5 91.5 L101 87.4 L94.5 91.5 L96.3 84.1 L90.5 79.2 L98.1 78.6 Z" class="paint-light" opacity=".45"/>
+			<circle cx="86" cy="67" r="2.2" fill="url(#pbls-dome)"/><circle cx="264" cy="67" r="2.2" fill="url(#pbls-dome)"/>
+		</g>
+
+		<!-- the strip under the screen: POWER, and the model -->
+		<rect x="200" y="584" width="568" height="34" rx="10" fill="url(#pbls-rubber)" stroke="#000" stroke-opacity=".6"/>
+		<text class="pbls-lettering" x="252" y="606" font-size="12" letter-spacing="2.5" fill="#a9a698" opacity=".6">POWER</text>
+		<text class="pbls-lettering" x="752" y="606" text-anchor="end" font-size="11" letter-spacing="2.2" fill="#a9a698" opacity=".45">MODEL LS-1</text>
+
+		<!-- the readout bay: a hinged door over a second, dimmer screen -->
+		<rect x="200" y="630" width="568" height="172" rx="18" fill="#0e0e0d" stroke="#000" stroke-width="2"/>
+		<rect x="201.5" y="631.5" width="565" height="169" rx="17" fill="none" stroke="#fff" stroke-opacity=".1"/>
+		<rect x="230" y="626" width="508" height="14" rx="6" fill="url(#pbls-knuckle)"/>
+		<rect x="208" y="786" width="34" height="12" rx="4" class="paint-dark" stroke="#000" stroke-opacity=".6"/>
+		<rect x="726" y="786" width="34" height="12" rx="4" class="paint-dark" stroke="#000" stroke-opacity=".6"/>
+
+		<!-- the selector: a lever in a slot, one stop per tab -->
+		<rect x="806" y="160" width="244" height="250" rx="22" fill="#000" opacity=".28"/>
+		<rect x="808" y="162" width="240" height="246" rx="20" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width="2" transform="translate(1 2)"/>
+		<text class="pbls-engraved" x="928" y="186" text-anchor="middle" font-size="11" letter-spacing="2.4">SELECT</text>
+		<g fill="#000" opacity=".5">
+			{{#each lonestar.detents}}<rect x="986" y="{{this}}" width="8" height="2"/>{{/each}}
+		</g>
+		<rect x="996" y="196" width="24" height="204" rx="12" fill="#0b0b0a" stroke="#000"/>
+		<rect x="997" y="198" width="22" height="200" rx="11" fill="none" stroke="#fff" stroke-opacity=".08"/>
+
+		<!-- the radiation meter -->
+		<rect x="806" y="422" width="244" height="254" rx="22" fill="#000" opacity=".28"/>
+		<rect x="808" y="424" width="240" height="250" rx="20" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width="2" transform="translate(1 2)"/>
+		<g transform="translate(341 -260)">
+			<rect x="500" y="692" width="174" height="146" rx="10" fill="#0e0e0d" stroke="#000" stroke-width="2"/>
+			<rect x="507" y="699" width="160" height="132" rx="6" fill="url(#pbls-meterFace)"/>
+			<g clip-path="url(#pbls-faceClip)">
+				<!-- the zones, then the ticks and the numbers: full scale is the HP radiation can take -->
+				<path d="{{lonestar.zones.safe}}" fill="none" stroke="#5c8a3a" stroke-width="8"/>
+				<path d="{{lonestar.zones.warn}}" fill="none" stroke="#c8a23a" stroke-width="8"/>
+				<path d="{{lonestar.zones.hot}}" fill="none" stroke="#b33a2a" stroke-width="8"/>
+				<g stroke="#2a2418" stroke-linecap="round">
+					{{#each lonestar.ticks}}<line x1="{{x1}}" y1="{{y1}}" x2="{{x2}}" y2="{{y2}}" stroke-width="{{width}}"/>{{/each}}
+				</g>
+				<g font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#2a2418" text-anchor="middle">
+					{{#each lonestar.numbers}}<text x="{{x}}" y="{{y}}">{{text}}</text>{{/each}}
+				</g>
+				<!-- the trefoil, printed on the face -->
+				<g transform="translate(587 792)" fill="#2a2418" opacity=".55">
+					<circle r="2.6"/>
+					<path d="M0 0 L-6.1 -10.5 A12.2 12.2 0 0 1 6.1 -10.5 Z"/>
+					<path d="M0 0 L-6.1 -10.5 A12.2 12.2 0 0 1 6.1 -10.5 Z" transform="rotate(120)"/>
+					<path d="M0 0 L-6.1 -10.5 A12.2 12.2 0 0 1 6.1 -10.5 Z" transform="rotate(240)"/>
+					<circle r="4.2" fill="url(#pbls-meterFace)"/><circle r="2.6"/>
+				</g>
+				<text x="587" y="818" font-family="Arial, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.6" fill="#2a2418" text-anchor="middle" opacity=".8">RADS</text>
+			</g>
+			<!-- the count lamp's socket, and the dose counter's window -->
+			<circle cx="520" cy="881" r="10" fill="#111" stroke="#55534b" stroke-width="1.5"/>
+			<text x="536" y="866" font-family="Arial, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.6" class="paint-light" opacity=".75">DOSE</text>
+			<rect x="536" y="870" width="132" height="26" rx="4" fill="#060806" stroke="#000"/>
+			<text x="602" y="915" font-family="Arial, sans-serif" font-size="7.5" font-weight="700" letter-spacing="1.4" class="paint-light" opacity=".6" text-anchor="middle">COUNTS SINCE ON</text>
+		</g>
+
+		<!-- the speaker, for the radio -->
+		<rect x="806" y="688" width="244" height="104" rx="22" fill="#000" opacity=".28"/>
+		<g fill="#0b0b0a">
+			{{#each lonestar.grille}}<circle cx="{{x}}" cy="{{y}}" r="3.4"/>{{/each}}
+		</g>
+
+		<!-- the tuning wheel, on the right edge -->
+		<rect x="1058" y="452" width="22" height="200" rx="6" class="paint-dark" stroke="#000" stroke-opacity=".6"/>
+		<g clip-path="url(#pbls-wheelClip)">
+			<rect class="pbls-knurl" x="1068" y="456" width="28" height="194" fill="url(#pbls-knurl)"/>
+			<rect x="1068" y="466" width="28" height="172" fill="url(#pbls-shade)"/>
+			<rect x="1068" y="466" width="28" height="172" fill="url(#pbls-sideShade)" opacity=".9"/>
+		</g>
+		<rect x="1068" y="466" width="28" height="172" rx="11" fill="none" stroke="#000" stroke-width="1.5"/>
+		<text class="pbls-engraved" x="1044" y="552" transform="rotate(90 1044 552)" text-anchor="middle" font-size="11" letter-spacing="2">TUNE</text>
+	</svg>
+
+	{{!-- The main screen --}}
+	<div class="pipboy-screen pbls-screen">
+		<div class="pipboy-glass"></div>
+		{{#if showScanlines}}<div class="pipboy-scanlines"></div>{{/if}}
+		<div class="pipboy-content">
+			{{> "modules/scorpious187s-pip-boy/templates/screen.hbs"}}
+		</div>
+		<div class="pbls-power{{#unless lonestar.screenOn}} shown{{/unless}}"><i></i></div>
+	</div>
+
+	{{!-- The readout bay: item, skill and perk text, as on the original's lower panel --}}
+	<div class="pipboy-lower pbls-readout" data-empty="true">
+		<div class="pip-info-head">
+			<img class="pip-info-img" src="" alt="" hidden />
+			<span class="pip-info-title"></span>
+		</div>
+		<div class="pip-info-body">Select an item to view details.</div>
+		<div class="pbls-power{{#unless lonestar.readoutOn}} shown{{/unless}}"><i></i></div>
+	</div>
+
+	{{!-- The moving parts, on a layer of their own so the meter's needle doesn't
+	      repaint the whole casing --}}
+	<svg class="pbls-live" viewBox="100 74 1010 772" aria-hidden="true" focusable="false">
+		<!-- the POWER lamp: lit while the Pip-Boy light is on -->
+		<g class="pbls-lamp{{#if lightOn}} lit{{/if}}">
+			<circle class="pbls-lamp-glow" cx="230" cy="601" r="34" fill="url(#pbls-lampGlow)"/>
+			<circle cx="230" cy="601" r="14" fill="#111" stroke="#55534b" stroke-width="2"/>
+			<circle class="pbls-bulb" cx="230" cy="601" r="10"/>
+			<ellipse cx="226.5" cy="597" rx="3.5" ry="2.2" fill="#fff" opacity=".45"/>
+		</g>
+
+		<!-- the tab names, and the lever that picks one -->
+		<g>
+			{{#each lonestar.tabs}}
+			<text class="pbls-tab-label{{#if active}} active{{/if}}" data-action="switchTab" data-tab="{{id}}" x="968" y="{{y}}">{{label}}</text>
+			{{/each}}
+		</g>
+		<rect class="pbls-slot-hit" x="990" y="190" width="36" height="216" rx="12"/>
+		<g class="pbls-lever" style="transform: translateY({{lonestar.leverY}}px)">
+			<rect x="980" y="-15" width="56" height="30" rx="8" fill="#151513"/>
+			<rect x="981" y="-16" width="54" height="28" rx="7" fill="url(#pbls-knuckle)"/>
+			<g stroke="#000" stroke-opacity=".45" stroke-width="2"><path d="M994 -10 V7"/><path d="M1002 -10 V7"/><path d="M1010 -10 V7"/><path d="M1018 -10 V7"/></g>
+		</g>
+
+		<!-- the meter's needle, under its glass; the count lamp and the counter -->
+		<g transform="translate(341 -260)">
+			<g clip-path="url(#pbls-faceClip)">
+				<g class="pbls-needle" transform="rotate({{lonestar.needle}} 587 826)">
+					<line x1="587" y1="826" x2="587" y2="738" stroke="#111" stroke-width="2.2" stroke-linecap="round"/>
+					<line x1="587" y1="826" x2="587" y2="840" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+				</g>
+				<circle cx="587" cy="826" r="7" fill="url(#pbls-dome)" stroke="#111"/>
+			</g>
+			<rect x="507" y="699" width="160" height="132" rx="6" fill="url(#pbls-meterGlass)"/>
+			<circle class="pbls-count-lamp" cx="520" cy="881" r="6.5" fill="#3a1a12"/>
+			<text class="pbls-dose" x="662" y="890" font-size="19" text-anchor="end">{{lonestar.dose}}</text>
+		</g>
+	</svg>
+
+	{{!-- POWER lamp: toggles the Pip-Boy light on the actor's token --}}
+	<button type="button" class="pbls-hot pbls-lamp-hot{{#if lightOn}} lit{{/if}}" data-action="toggleLight"
+		data-tooltip="Pip-Boy light" aria-label="Pip-Boy light"></button>
+
+	{{!-- TUNE wheel: opens Module Settings, as the original's dial wheel does --}}
+	<button type="button" class="pbls-hot pbls-knob-hot" data-action="openSettings"
+		data-tooltip="Settings" aria-label="Settings"></button>
+</div>

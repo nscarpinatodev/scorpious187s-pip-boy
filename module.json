@@ -32,7 +32,8 @@
 		"scripts/module.mjs"
 	],
 	"styles": [
-		"styles/pipboy.css"
+		"styles/pipboy.css",
+		"styles/lonestar.css"
 	],
 	"languages": [
 		{

@@ -1,6 +1,12 @@
 {
 	"SCORPIOUS_PIPBOY.Title": "Pip-Boy",
 	"SCORPIOUS_PIPBOY.OpenTooltip": "Open Pip-Boy",
+	"SCORPIOUS_PIPBOY.Settings.Layout.Name": "Pip-Boy Layout",
+	"SCORPIOUS_PIPBOY.Settings.Layout.Hint": "The casing the Pip-Boy is drawn in. Original is the wrist unit. The Lonestar Edition is a wide unit worn across the forearm: a lever picks the tab, a meter reads your character's radiation, and a readout bay sits under the screen. Frame color, size, scanlines and the boot screen apply to both.",
+	"SCORPIOUS_PIPBOY.Settings.Layout.Original": "Original",
+	"SCORPIOUS_PIPBOY.Settings.Layout.Lonestar": "Lonestar Edition",
+	"SCORPIOUS_PIPBOY.Settings.GeigerClicks.Name": "Geiger Clicks",
+	"SCORPIOUS_PIPBOY.Settings.GeigerClicks.Hint": "Lonestar Edition only: the radiation meter clicks as it counts, faster the more rads your character has. Needs Pip-Boy Sounds on; heard only by you.",
 	"SCORPIOUS_PIPBOY.Settings.FrameColor.Name": "Pip-Boy Frame Colour",
 	"SCORPIOUS_PIPBOY.Settings.FrameColor.Hint": "The casing colour used for the Pip-Boy window. The screen tint follows the frame.",
 	"SCORPIOUS_PIPBOY.Settings.Scanlines.Name": "CRT Scanlines",

@@ -15,6 +15,7 @@ export { MODULE_ID };
  * main template can pull them in with `{{> "path"}}`.
  */
 const TEMPLATE_PARTIALS = [
+	`modules/${MODULE_ID}/templates/screen.hbs`,
 	`modules/${MODULE_ID}/templates/tabs/status.hbs`,
 	`modules/${MODULE_ID}/templates/tabs/inventory.hbs`,
 	`modules/${MODULE_ID}/templates/tabs/data.hbs`,
@@ -24,6 +25,24 @@ const TEMPLATE_PARTIALS = [
 
 Hooks.once("init", async () => {
 	console.log(`${MODULE_ID} | Initialising Scorpious187's Pip Boy`);
+
+	game.settings.register(MODULE_ID, "layout", {
+		name: "SCORPIOUS_PIPBOY.Settings.Layout.Name",
+		hint: "SCORPIOUS_PIPBOY.Settings.Layout.Hint",
+		scope: "client",
+		config: true,
+		type: String,
+		default: "original",
+		choices: {
+			original: "SCORPIOUS_PIPBOY.Settings.Layout.Original",
+			lonestar: "SCORPIOUS_PIPBOY.Settings.Layout.Lonestar",
+		},
+		onChange: () => {
+			for (const app of foundry.applications.instances.values()) {
+				if (app instanceof PipBoyApp) app.applyLayout();
+			}
+		},
+	});
 
 	game.settings.register(MODULE_ID, "frameColor", {
 		name: "Pip-Boy Frame Colour",
@@ -93,6 +112,15 @@ Hooks.once("init", async () => {
 		config: true,
 		type: Boolean,
 		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "geigerClicks", {
+		name: "SCORPIOUS_PIPBOY.Settings.GeigerClicks.Name",
+		hint: "SCORPIOUS_PIPBOY.Settings.GeigerClicks.Hint",
+		scope: "client",
+		config: true,
+		type: Boolean,
+		default: false,
 	});
 
 	game.settings.register(MODULE_ID, "customSoundDir", {

@@ -16,7 +16,7 @@ if (-not (Test-Path $FoundryData)) {
 }
 
 # Files/folders that make up the installable module.
-$include = @("module.json", "scripts", "styles", "templates", "lang", "frames", "sounds")
+$include = @("module.json", "scripts", "styles", "templates", "lang", "frames", "sounds", "fonts")
 
 if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
 New-Item -ItemType Directory -Path $dest -Force | Out-Null

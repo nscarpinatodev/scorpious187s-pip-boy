@@ -261,6 +261,36 @@ Clicking an item, perk, or trait (or rolling a skill) shows its **description** 
 the lower panel of the Pip-Boy casing — no extra window. The panel clears when you
 switch tabs or select something new.
 
+### Two layouts
+**Pip-Boy Layout** *(per client)* picks the casing:
+
+- **Original** (the default): the wrist unit, as the Pip-Boy has always looked.
+- **Lonestar Edition**: a wide unit worn across the forearm, drawn in SVG and
+  CSS rather than from artwork. The screen sits on the left under the maker's
+  plate, with the readout bay below it behind a hinged door. A column on the
+  right holds the tab selector, a radiation meter and a speaker, and a **TUNE**
+  wheel sits on the right edge. The screen's tabs are the same in both layouts.
+  - **Tab selector:** click a tab name, or drag the lever up and down its slot;
+    it snaps to the nearest tab.
+  - **POWER lamp:** toggles the Pip-Boy light, as on the Original.
+  - **TUNE wheel:** opens the settings, as the Original's dial wheel does.
+  - **Readout bay:** the lower readout. Item, skill and perk text shows here,
+    and long text scrolls.
+  - **Radiation meter:** reads your character's rads against the HP they would
+    have without any (the fallout system takes each rad off maximum HP), so the
+    needle reaches the end of the red when radiation has eaten the whole pool.
+    The count lamp and the DOSE counter tick faster the hotter it reads.
+    **Geiger Clicks** *(per client, off by default)* lets you hear them, if
+    Pip-Boy Sounds is on.
+  - **Opening:** the arm swings up, the screen comes on like a CRT, and the
+    PIP-OS boot runs as before, with the activation sound timed to it. The
+    readout comes on with the PIP-OS header, and the meter's needle sweeps full
+    scale and back as a self-test.
+  - **Closing:** both screens collapse to a line and a point, and the arm drops.
+  - With your system set to reduce motion, all of this fades instead.
+  - Frame color, size, scanlines and the boot screen work the same in both
+    layouts. Each frame color paints the Lonestar casing and tints its screen.
+
 ### Presentation
 - **8 frame colours** with matching CRT phosphor tint (per-client setting).
 - CRT scanlines, glow, and a transparent window background so only the casing shows.
@@ -282,9 +312,12 @@ switch tabs or select something new.
 ## Settings
 
 Per client:
+- **Pip-Boy Layout** — Original (default) or Lonestar Edition (see *Two layouts*).
 - **Pip-Boy Frame Colour** — the casing colour; the screen tint follows it.
 - **Pip-Boy Size** — window and text scale (default 115%).
 - **CRT Scanlines**, **PIP-OS Boot Screen**, **Pip-Boy Sounds** — toggles.
+- **Geiger Clicks** — the Lonestar Edition's radiation meter clicks as it
+  counts (off by default; needs Pip-Boy Sounds).
 - **Pip-Boy Light Colour** — Fallout Green, or match your screen colour.
 
 World (GM):
@@ -341,3 +374,14 @@ runtime by the **fallout** system (Fallout: The Roleplaying Game by Muttley &
 contributors); no system assets are bundled in this module. "Fallout" and
 "Pip-Boy" are trademarks of Bethesda Softworks; this is an unofficial, non-
 commercial fan project.
+
+The Lonestar Edition casing is drawn in SVG and CSS for this module; it uses no
+game artwork. Its fonts:
+
+- **Share Tech Mono** (Carrois Type Design) for the screen, and **Rajdhani Bold**
+  (Indian Type Foundry) for the casing's lettering, both under the SIL Open
+  Font License 1.1 (see `fonts/`).
+- The screen uses **Monofonto** (Typodermic Fonts) instead where it is installed
+  on your computer. It is not bundled: its free license covers desktop use only.
+- The "Pip-Boy" on the maker's plate is set in **Wide Glide** (Brain Stew Fonts)
+  and drawn as outlines. The font itself is not bundled.

@@ -7,43 +7,7 @@
 		{{#if showScanlines}}<div class="pipboy-scanlines"></div>{{/if}}
 
 		<div class="pipboy-content">
-			<header class="pip-header">
-				<span class="pip-name">{{actor.name}}</span>
-				<span class="pip-level">LVL {{data.level}}</span>
-				{{#if canConfigureSheet}}
-				<button type="button" class="pip-sheet-config" data-action="configureSheet"
-					data-tooltip="Sheet configuration — switch back to the standard sheet">
-					<i class="fas fa-gear"></i>
-				</button>
-				{{/if}}
-			</header>
-
-			<nav class="pip-tabs">
-				{{#each tabs}}
-				<button type="button" class="pip-tab{{#if active}} active{{/if}}"
-					data-action="switchTab" data-tab="{{id}}">
-					<i class="fas {{icon}}"></i><span>{{label}}</span>
-				</button>
-				{{/each}}
-			</nav>
-
-			<div class="pip-panes">
-				<section class="pip-pane" data-tab-content="status">
-					{{> "modules/scorpious187s-pip-boy/templates/tabs/status.hbs"}}
-				</section>
-				<section class="pip-pane" data-tab-content="inventory">
-					{{> "modules/scorpious187s-pip-boy/templates/tabs/inventory.hbs"}}
-				</section>
-				<section class="pip-pane" data-tab-content="data">
-					{{> "modules/scorpious187s-pip-boy/templates/tabs/data.hbs"}}
-				</section>
-				<section class="pip-pane" data-tab-content="map">
-					{{> "modules/scorpious187s-pip-boy/templates/tabs/map.hbs"}}
-				</section>
-				<section class="pip-pane" data-tab-content="radio">
-					{{> "modules/scorpious187s-pip-boy/templates/tabs/radio.hbs"}}
-				</section>
-			</div>
+			{{> "modules/scorpious187s-pip-boy/templates/screen.hbs"}}
 		</div>
 	</div>
 

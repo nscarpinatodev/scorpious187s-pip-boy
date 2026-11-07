@@ -3,6 +3,44 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **A second layout: the Pip-Boy Lonestar Edition.** A new per-client setting,
+  **Pip-Boy Layout**, picks the casing: **Original** (the default, unchanged)
+  or **Lonestar Edition**, a wide unit worn across the forearm and drawn in SVG
+  and CSS. Changing it redraws any open Pip-Boy.
+  - The screen shows the same tabs as the Original. The casing follows the
+    frame color (each color paints the casing and tints the screen), the size
+    and the scanlines settings.
+  - A **lever** in a slot picks the tab: click a tab name, or drag the lever
+    and it snaps to the nearest one.
+  - The **POWER lamp** toggles the Pip-Boy light and the **TUNE wheel** opens
+    the settings, as on the Original.
+  - The **readout bay** under the screen is the lower readout: item, skill and
+    perk text, including the level-up wizard's perk text. Long text scrolls.
+  - A **radiation meter** reads the character's rads against the HP they would
+    have without any, with a count lamp and a DOSE counter that tick faster the
+    hotter it reads.
+  - **Opening:** the arm swings up, the screen comes on like a CRT, then the
+    PIP-OS boot runs exactly as before, with the activation sound timed to it.
+    The readout comes on with the PIP-OS header, and the meter's needle sweeps
+    as a self-test. **Closing:** both screens collapse to a line and a point,
+    and the arm drops. With reduced motion set, these fade instead.
+- **Geiger Clicks** (per client, off by default): the Lonestar Edition's meter
+  clicks as it counts. Needs Pip-Boy Sounds on.
+- Bundled fonts for the Lonestar Edition, both under the SIL Open Font License:
+  Share Tech Mono for the screen (Monofonto is used instead where it is
+  installed) and Rajdhani Bold for the casing's lettering. The plate's title is
+  drawn as outlines; no other font ships.
+
+### Changed
+
+- The screen's header, tab bar and tabs moved into their own template
+  (`templates/screen.hbs`), shared by both layouts. The Original renders the
+  same as before.
+
 ## [1.5.1] — 2026-09-25
 
 ### Fixed

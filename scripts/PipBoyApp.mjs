@@ -2,6 +2,7 @@ import { MODULE_ID, TINT_COLORS, FALLOUT_GREEN } from "./constants.mjs";
 import { rollWeaponAttack, rollWeaponDamage, rollSkill } from "./attacks.mjs";
 import { PipBoyRadio } from "./radio.mjs";
 import { PipBoyLevelUp } from "./levelup.mjs";
+import { LonestarCasing } from "./lonestar.mjs";
 
 const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -117,7 +118,19 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	_initializeApplicationOptions(options) {
 		const opts = super._initializeApplicationOptions(options);
 		opts.classes = opts.classes.filter((c) => c !== "sheet");
+		// Core opens a sheet at the default width; the Lonestar Edition is a
+		// wide unit, so size it as `open()` would.
+		if (PipBoyApp.layout === "lonestar") {
+			opts.position.width = Math.round(PipBoyApp.baseWidth * PipBoyApp.uiScale);
+		}
 		return opts;
+	}
+
+	/** The casing: the Original layout's template, or the Lonestar Edition's. */
+	_configureRenderParts(options) {
+		const parts = super._configureRenderParts(options);
+		if (PipBoyApp.layout === "lonestar") parts.main.template = LonestarCasing.TEMPLATE;
+		return parts;
 	}
 
 	/** Remembered scroll position per tab, so re-renders don't jump to the top. */
@@ -155,11 +168,29 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	/** Base window width at 100%. */
 	static BASE_WIDTH = 600;
 
+	/** Which casing to draw: "original" (the PNG frames) or "lonestar". */
+	static get layout() {
+		return game.settings.get(MODULE_ID, "layout") === "lonestar" ? "lonestar" : "original";
+	}
+
+	/** Base window width at 100% for the chosen layout. */
+	static get baseWidth() {
+		return PipBoyApp.layout === "lonestar" ? LonestarCasing.BASE_WIDTH : PipBoyApp.BASE_WIDTH;
+	}
+
 	/** Re-apply the current scale to this window (settings change). */
 	applyUiScale() {
-		this.setPosition({ width: Math.round(PipBoyApp.BASE_WIDTH * PipBoyApp.uiScale) });
+		this.setPosition({ width: Math.round(PipBoyApp.baseWidth * PipBoyApp.uiScale) });
 		this.render();
 	}
+
+	/** Redraw in the chosen layout (settings change); the two differ in width. */
+	applyLayout() {
+		this.applyUiScale();
+	}
+
+	/** The Lonestar Edition's casing while that layout is showing. */
+	#casing = null;
 
 	/** True when this actor's configured sheet IS the Pip-Boy — checked without
 	 *  constructing the sheet, so a normal actor doesn't build one just to ask. */
@@ -200,7 +231,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		}
 		const app = new PipBoyApp(actor, {
 			id: `${MODULE_ID}-${actor.id}`,
-			position: { width: Math.round(PipBoyApp.BASE_WIDTH * PipBoyApp.uiScale) },
+			position: { width: Math.round(PipBoyApp.baseWidth * PipBoyApp.uiScale) },
 		});
 		app.render({ force: true });
 		return app;
@@ -279,10 +310,22 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		}
 	}
 
+	/** The Lonestar Edition puts itself away before the window goes: both
+	 *  screens collapse and the arm drops, in place of core's own animation. */
+	async _preClose(options) {
+		await super._preClose(options);
+		if (!this.#casing || options.animate === false || this.minimized || !this.element?.isConnected) return;
+		this.#endBootSequence();
+		await this.#casing.putAway();
+		options.animate = false;
+	}
+
 	_onClose(options) {
 		// Silent by default; sounds if a custom close.wav is configured.
 		PipBoyApp.playSound("close");
 		this.#endBootSequence();
+		this.#casing?.destroy();
+		this.#casing = null;
 		this.#levelUpWizard?.close();
 		this.#levelUpWizard = null;
 		this.#closeEditFlyout();
@@ -331,6 +374,18 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		context.inventory = this.#prepareInventory(actor);
 		context.data = this.#prepareData(actor, sys);
 		context.map = this.#prepareMap();
+
+		context.layout = PipBoyApp.layout;
+		if (context.layout === "lonestar") {
+			await LonestarCasing.ensureDefs();
+			// Opening: start dark and come up. Switched to while open: already on.
+			this.#casing ??= new LonestarCasing(this, { on: !options.isFirstRender });
+			context.lonestar = this.#casing.context({ tabs: context.tabs, system: sys });
+		}
+		else if (this.#casing) {
+			this.#casing.destroy();
+			this.#casing = null;
+		}
 
 		return context;
 	}
@@ -882,8 +937,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 	_onFirstRender(context, options) {
 		super._onFirstRender(context, options);
-		// Pip-Boy activation sound when the window first opens.
-		PipBoyApp.playSound("activate");
+		// Pip-Boy activation sound when the window first opens. The Lonestar
+		// Edition plays it once its arm is up, with the boot (see _onRender).
+		if (!this.#casing) PipBoyApp.playSound("activate");
 
 		// Generic "select" blip for clicked controls, bound once to the
 		// persistent root element. Tabs and the POWER lamp are excluded —
@@ -907,7 +963,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		}).bind(this.element);
 
 		// PIP-OS boot sequence over the CRT, timed to the activation sound.
-		if (game.settings.get(MODULE_ID, "bootScreen")) this.#runBootSequence();
+		if (!this.#casing && game.settings.get(MODULE_ID, "bootScreen")) this.#runBootSequence();
 	}
 
 	/** Dropping an Item (from the sidebar, a compendium, or another actor's
@@ -932,6 +988,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 	/** Live boot-sequence overlay element while the boot animation runs. */
 	#bootEl = null;
+
+	/** Resolves the promise `#runBootSequence` returned, however the boot ends. */
+	#bootDone = null;
 
 	/** The classic FO3 PIP-OS boot readout. */
 	static #BOOT_OS_LINES = [
@@ -962,10 +1021,20 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 	/** FO3-style boot: ~2.5s of fast POST diagnostics, then the PIP-OS header
 	 *  line by line, then a blinking "Initiating..." — ending together with the
-	 *  ~5.15s Boot Sequence activation sound. Click the screen to skip. */
-	async #runBootSequence() {
+	 *  ~5.15s Boot Sequence activation sound. Click the screen to skip.
+	 *
+	 *  `onHeader` is called as the PIP-OS header starts (the Lonestar Edition's
+	 *  readout comes on then). The returned promise resolves when the boot ends,
+	 *  whether it ran out, was skipped or the window closed. */
+	#runBootSequence({ onHeader } = {}) {
 		const screen = this.element?.querySelector(".pipboy-screen");
-		if (!screen || this.#bootEl) return;
+		if (!screen || this.#bootEl) return Promise.resolve();
+		const done = new Promise((resolve) => { this.#bootDone = resolve; });
+		this.#bootSteps(screen, onHeader);
+		return done;
+	}
+
+	async #bootSteps(screen, onHeader) {
 		const el = document.createElement("div");
 		el.className = "pipboy-boot";
 		el.addEventListener("click", () => this.#endBootSequence());
@@ -991,6 +1060,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 		// Phase 2: the PIP-OS header, one line at a time.
 		scroll.remove();
+		onHeader?.();
 		const os = document.createElement("div");
 		os.className = "pip-boot-os";
 		el.appendChild(os);
@@ -1015,6 +1085,9 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	#endBootSequence() {
 		this.#bootEl?.remove();
 		this.#bootEl = null;
+		const done = this.#bootDone;
+		this.#bootDone = null;
+		done?.();
 	}
 
 	_onRender(context, options) {
@@ -1102,6 +1175,19 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		}
 
 		if (this.#activeTab === "map") this.#layoutMap();
+
+		// The Lonestar Edition's casing: its lever, meter and power, and on
+		// opening, the arm coming up and the boot.
+		this.element.classList.toggle("pip-lonestar-app", !!this.#casing);
+		if (this.#casing) {
+			this.#casing.attach(this.element);
+			if (options.isFirstRender) {
+				this.#casing.bringUp({
+					boot: game.settings.get(MODULE_ID, "bootScreen") ? (opts) => this.#runBootSequence(opts) : null,
+					activate: () => PipBoyApp.playSound("activate"),
+				});
+			}
+		}
 	}
 
 	/** Removes the open pop-up — edit fly-out OR item context menu — and its
@@ -1543,6 +1629,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		// The map image can only be measured once its pane is visible.
 		if (this.#activeTab === "map") this.#layoutMap();
 		this.#attachMapControls();
+		this.#casing?.showTab(this.#activeTab);
 
 		// Re-populate the lower readout (it is rebuilt on every render).
 		this.#renderInfo();
@@ -1742,7 +1829,16 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	}
 
 	static #onSwitchTab(event, target) {
-		const tab = target.dataset.tab;
+		this.selectTab(target.dataset.tab);
+	}
+
+	/** The tab showing on the screen. */
+	get activeTab() {
+		return this.#activeTab;
+	}
+
+	/** Show a tab, as clicking it does. The Lonestar Edition's lever uses this. */
+	selectTab(tab) {
 		if (!tab || tab === this.#activeTab) return;
 		PipBoyApp.playSound("tab");
 		this.#activeTab = tab;

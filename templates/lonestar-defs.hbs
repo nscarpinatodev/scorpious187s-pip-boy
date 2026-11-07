@@ -1,0 +1,115 @@
+{{!-- Scorpious187's Pip Boy — the Lonestar Edition's shared paint, shading and parts.
+      Put into the page once and used by every open Lonestar casing, so a few open
+      Pip-Boys don't each carry (and fight over the ids of) their own copy. --}}
+<svg id="pbls-defs" class="pbls-defs" width="0" height="0" aria-hidden="true" focusable="false">
+	<defs>
+		<linearGradient id="pbls-shade" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+			<stop offset=".08" stop-color="#fff" stop-opacity=".06"/>
+			<stop offset=".55" stop-color="#000" stop-opacity="0"/>
+			<stop offset="1" stop-color="#000" stop-opacity=".38"/>
+		</linearGradient>
+		<linearGradient id="pbls-sideShade" x1="0" y1="0" x2="1" y2="0">
+			<stop offset="0" stop-color="#000" stop-opacity=".35"/>
+			<stop offset=".06" stop-color="#000" stop-opacity="0"/>
+			<stop offset=".94" stop-color="#000" stop-opacity="0"/>
+			<stop offset="1" stop-color="#000" stop-opacity=".4"/>
+		</linearGradient>
+		<linearGradient id="pbls-rubber" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#45443e"/>
+			<stop offset=".5" stop-color="#2b2a26"/>
+			<stop offset="1" stop-color="#1a1917"/>
+		</linearGradient>
+		<linearGradient id="pbls-bezel" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#3a3935"/>
+			<stop offset=".5" stop-color="#22211e"/>
+			<stop offset="1" stop-color="#111110"/>
+		</linearGradient>
+		<linearGradient id="pbls-knuckle" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#1a1a18"/>
+			<stop offset=".35" stop-color="#77756c"/>
+			<stop offset=".55" stop-color="#4a4943"/>
+			<stop offset="1" stop-color="#151513"/>
+		</linearGradient>
+		<radialGradient id="pbls-lampOff" cx=".4" cy=".35" r=".7">
+			<stop offset="0" stop-color="#b98a52"/>
+			<stop offset=".6" stop-color="#6b3f12"/>
+			<stop offset="1" stop-color="#2a1604"/>
+		</radialGradient>
+		<radialGradient id="pbls-lampOn" cx=".4" cy=".35" r=".7">
+			<stop offset="0" stop-color="#fff6d2"/>
+			<stop offset=".45" stop-color="#ffb43c"/>
+			<stop offset="1" stop-color="#9a4300"/>
+		</radialGradient>
+		<radialGradient id="pbls-lampGlow">
+			<stop offset="0" stop-color="#ffb43c" stop-opacity=".7"/>
+			<stop offset="1" stop-color="#ffb43c" stop-opacity="0"/>
+		</radialGradient>
+		<radialGradient id="pbls-dome" cx=".35" cy=".3" r=".75">
+			<stop offset="0" stop-color="#d8d6cc"/>
+			<stop offset=".5" stop-color="#77756c"/>
+			<stop offset="1" stop-color="#1c1c1a"/>
+		</radialGradient>
+		<pattern id="pbls-knurl" width="24" height="6" patternUnits="userSpaceOnUse">
+			<rect width="24" height="6" fill="#262522"/>
+			<rect y="0" width="24" height="2.4" fill="#6e6c63"/>
+			<rect y="2.4" width="24" height="1" fill="#9b998f"/>
+		</pattern>
+		<!-- worn paint: blotches and grain, the same on every color -->
+		<filter id="pbls-grime" x="0" y="0" width="100%" height="100%">
+			<feTurbulence type="fractalNoise" baseFrequency=".012 .02" numOctaves="4" seed="11" result="blotch"/>
+			<feColorMatrix in="blotch" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.15" result="blotchA"/>
+			<feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="1" seed="3" result="grain"/>
+			<feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.2 .62" result="grainA"/>
+			<feMerge><feMergeNode in="blotchA"/><feMergeNode in="grainA"/></feMerge>
+		</filter>
+		<filter id="pbls-scuff" x="0" y="0" width="100%" height="100%">
+			<feTurbulence type="fractalNoise" baseFrequency=".11" numOctaves="3" seed="5" result="n"/>
+			<feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -22 5.3"/>
+		</filter>
+
+		<!-- the radiation meter -->
+		<linearGradient id="pbls-meterFace" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#efe6c8"/>
+			<stop offset="1" stop-color="#cfc29a"/>
+		</linearGradient>
+		<linearGradient id="pbls-meterGlass" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#fff" stop-opacity=".28"/>
+			<stop offset=".35" stop-color="#fff" stop-opacity=".04"/>
+			<stop offset=".36" stop-color="#fff" stop-opacity="0"/>
+			<stop offset="1" stop-color="#000" stop-opacity=".22"/>
+		</linearGradient>
+		<radialGradient id="pbls-countOn">
+			<stop offset="0" stop-color="#fff4c8"/>
+			<stop offset=".5" stop-color="#ff9a2a"/>
+			<stop offset="1" stop-color="#a33a00"/>
+		</radialGradient>
+		<clipPath id="pbls-faceClip"><rect x="507" y="699" width="160" height="132" rx="6"/></clipPath>
+
+		<!-- the forearm under it, and the casing's parts -->
+		<linearGradient id="pbls-sleeve" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#1b1b19"/>
+			<stop offset=".25" stop-color="#3b3a35"/>
+			<stop offset=".55" stop-color="#2b2a26"/>
+			<stop offset="1" stop-color="#111110"/>
+		</linearGradient>
+		<pattern id="pbls-rib" width="14" height="10" patternUnits="userSpaceOnUse">
+			<rect width="14" height="10" fill="none"/><rect width="3" height="10" fill="#000" opacity=".35"/>
+		</pattern>
+		<path id="pbls-shellPath" d="M186 100 H1014 Q1070 100 1070 156 V764 Q1070 820 1014 820 H186 Q130 820 130 764 V156 Q130 100 186 100 Z"/>
+		<clipPath id="pbls-shell"><use href="#pbls-shellPath"/></clipPath>
+		<!-- the sleeve fades out toward the window's edges -->
+		<linearGradient id="pbls-sleeveFade" x1="100" y1="0" x2="1110" y2="0" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#fff" stop-opacity="0"/>
+			<stop offset=".03" stop-color="#fff" stop-opacity="1"/>
+			<stop offset=".97" stop-color="#fff" stop-opacity="1"/>
+			<stop offset="1" stop-color="#fff" stop-opacity="0"/>
+		</linearGradient>
+		<mask id="pbls-sleeveMask" maskUnits="userSpaceOnUse" x="100" y="0" width="1010" height="900"><rect x="100" y="0" width="1010" height="900" fill="url(#pbls-sleeveFade)"/></mask>
+		<clipPath id="pbls-wheelClip"><rect x="1068" y="466" width="28" height="172" rx="11"/></clipPath>
+
+		<!-- the plate's title, in Wide Glide (Brain Stew Fonts), kept as outlines: the font
+		     itself is not ours to ship -->
+		<path id="pbls-plateTitle" d="M1051 -438 988 -321Q948 -246 779 -234Q754 -232 729 -232L352 -233L223 5L-74 7L-36 -64H84L299 -462H179L217 -533H884Q1061 -533 1061 -469Q1061 -457 1051 -438ZM819 -461 476 -462 392 -305H728Q804 -305 823 -340L873 -432Q880 -445 870.5 -453.0Q861 -461 819 -461ZM1413 -395Q1374 -370 1298 -370Q1256 -370 1228 -381Q1207 -393 1207 -409Q1207 -426 1232 -441Q1275 -467 1343 -467Q1389 -467 1412 -454Q1436 -445 1436 -427Q1436 -410 1413 -395ZM1452 0H920L957 -70H1065L1185 -292H1077L1115 -362H1391L1233 -70L1489 -69ZM2055 -283 1794 -284 1674 -62H1928Q1996 -62 2010 -73Q2015 -78 2019 -84L2118 -268Q2119 -270 2120 -271Q2124 -283 2055 -283ZM2160 -10Q2147 -15 2140 -24L2138 -26Q2080 8 1948 8H1637L1600 76L1601 77L1563 147H1296L1334 76H1432L1627 -284H1521L1559 -354H2136Q2279 -354 2294 -311Q2300 -294 2290 -276L2218 -142Q2216 -131 2216 -122Q2216 -105 2223 -95Q2239 -78 2286 -78L2284 -76H2389L2302 -2H2196Q2190 0 2151 -3ZM2977 -202H2438L2472 -265H3011ZM3910 -271Q3956 -257 3956 -229Q3956 -218 3949 -205L3890 -95Q3855 -30 3751 -8Q3690 5 3589 5H2918L2957 -66H3077L3292 -464H3172L3210 -535H3873Q3940 -535 3993 -523Q4078 -504 4078 -458Q4078 -446 4068.5 -427.0Q4059 -408 4042 -373Q4015 -322 3997 -306Q3975 -287 3914 -272ZM3899 -456Q3890 -463 3845 -463L3469 -464L3386 -310H3756Q3833 -310 3851 -344L3899 -434Q3907 -448 3899 -456ZM3723 -236 3346 -237 3254 -66H3624Q3701 -66 3720 -101L3777 -208Q3784 -222 3775.5 -229.0Q3767 -236 3723 -236ZM4510 -292 4343 -293Q4279 -293 4262 -280Q4257 -276 4253 -269L4154 -86Q4149 -77 4154 -75Q4167 -70 4215 -70L4438 -71Q4476 -73 4486 -92L4586 -277Q4593 -290 4555 -292Q4533 -292 4510 -292ZM4989 -284H4992L4905 -210Q4853 -210 4853 -210Q4752 -203 4722 -213L4719 -214L4642 -71Q4604 -1 4415 -1H4137Q3975 -1 3975 -54Q3975 -64 3982 -77L4098 -292Q4136 -362 4325 -362L4603 -363Q4764 -363 4764 -307Q4764 -303 4763 -298H5005ZM5751 -264H5632L5022 166H4814L5085 -25L4982 -264H4853L4901 -354H5304L5255 -264H5183L5235 -124L5425 -264H5345L5393 -354H5800Z"/>
+	</defs>
+</svg>
