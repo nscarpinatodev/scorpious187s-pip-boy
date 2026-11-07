@@ -3,7 +3,7 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.6.0] — 2026-11-06
 
 ### Added
 
