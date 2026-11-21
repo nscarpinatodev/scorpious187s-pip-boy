@@ -3,6 +3,22 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.2] — 2026-11-20
+
+### Fixed
+
+- **Other players' actions no longer disturb an open Pip-Boy.**
+  - The lower readout keeps its place in a long description when the Pip-Boy
+    redraws, including when the layout or the Pip-Boy Size changes.
+  - An open edit fly-out or right-click item menu stays open, with whatever
+    you've typed, when someone else moves a token or changes the character.
+    The Pip-Boy catches up as soon as you close it.
+  - Redraws that arrive together are merged: Foundry and the Pip-Boy both
+    redrew for every change to the character or its items, and a token move
+    counted twice. Token changes that only touch flags no longer redraw the
+    MAP at all, so a GM loading a world with Token Magic FX doesn't redraw
+    every player's Pip-Boy once per token.
+
 ## [1.6.1] — 2026-11-07
 
 ### Fixed

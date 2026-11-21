@@ -593,9 +593,17 @@ function refreshMapForToken(tokenDoc) {
 	}
 }
 // `moveToken` fires when a move is committed (destination known immediately);
-// `updateToken` covers non-movement changes and other cores.
+// `updateToken` covers non-movement changes and other cores. An update that
+// only touches flags changes nothing the MAP draws, and some modules write them
+// in bulk (Token Magic FX rewrites every token's filters when the GM loads), so
+// those don't redraw anyone's Pip-Boy.
 Hooks.on("moveToken", (tokenDoc) => refreshMapForToken(tokenDoc));
-Hooks.on("updateToken", (tokenDoc) => refreshMapForToken(tokenDoc));
+Hooks.on("updateToken", (tokenDoc, change) => {
+	const keys = Object.keys(foundry.utils.flattenObject(change ?? {}))
+		.filter((key) => key !== "_id" && !key.startsWith("_stats."));
+	if (keys.length && keys.every((key) => key.startsWith("flags."))) return;
+	refreshMapForToken(tokenDoc);
+});
 
 // "Show on Pip-Boy map" checkbox in the Tile configuration sheet. The input is
 // named into our flag scope, so Foundry's form handling saves it with the rest

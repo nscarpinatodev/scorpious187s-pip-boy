@@ -139,6 +139,14 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	/** Id of the item/skill whose description is shown in the lower readout. */
 	#infoItemId = null;
 
+	/** How far the readout is scrolled, and for which item, so a re-render
+	 *  puts a long description back where the player was reading. */
+	#infoScroll = { id: null, top: 0 };
+
+	/** Set while the window is resized ahead of a redraw: the old readout
+	 *  reflows and clamps its scroll, which isn't the player scrolling. */
+	#infoScrollFrozen = false;
+
 	/** Skill rows whose attribute/rank strip is open. Kept on the app, not in
 	 *  the DOM, so editing a rank doesn't close the strip it was edited from. */
 	#openSkills = new Set();
@@ -180,6 +188,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 	/** Re-apply the current scale to this window (settings change). */
 	applyUiScale() {
+		this.#infoScrollFrozen = true;
 		this.setPosition({ width: Math.round(PipBoyApp.baseWidth * PipBoyApp.uiScale) });
 		this.render();
 	}
@@ -329,6 +338,7 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		this.#casing = null;
 		this.#levelUpWizard?.close();
 		this.#levelUpWizard = null;
+		this.#renderHeld = false;
 		this.#closeEditFlyout();
 		// Another Pip-Boy may have been opened for the same actor since; only
 		// clear the map when this is the instance it points at.
@@ -1112,6 +1122,13 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 			);
 		}
 
+		// And the readout's, for the item it is showing.
+		const infoBody = this.element.querySelector(".pip-info-body");
+		infoBody?.addEventListener("scroll", () => {
+			if (!this.#infoItemId || this.#infoScrollFrozen || !infoBody.isConnected) return;
+			this.#infoScroll = { id: this.#infoItemId, top: infoBody.scrollTop };
+		}, { passive: true });
+
 		this.#applyActiveTab(this.element);
 
 		// Right-click a skill to reveal its attribute picker and rank editor.
@@ -1201,6 +1218,59 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		const cleanup = this.#editFlyoutCleanup;
 		this.#editFlyoutCleanup = null;
 		cleanup?.();
+		// Catch up on anything that changed while it was open.
+		if (this.#renderHeld) {
+			this.#renderHeld = false;
+			this.render();
+		}
+	}
+
+	/* -------------------------------------------- */
+	/*  Routine re-renders                           */
+	/* -------------------------------------------- */
+
+	/** A routine re-render came in while a pop-up was open. */
+	#renderHeld = false;
+
+	/** The pending merged re-render, while one is waiting. */
+	#queuedRender = null;
+
+	/** Re-renders this close together become one. */
+	static #RENDER_MERGE_MS = 50;
+
+	/** Render options a routine re-render may carry: what core passes when a
+	 *  document changes. Anything else is a deliberate render and goes ahead. */
+	static #ROUTINE_KEYS = new Set(["force", "renderContext", "renderData"]);
+
+	/** Routine re-renders (a document changing, a hook, a setting) arrive in
+	 *  bursts and from other players at any moment: core and our own hooks both
+	 *  re-render on one update, and a token move is an update and a move. They
+	 *  are merged into one, and held while a pop-up is open so another player's
+	 *  action doesn't close the fly-out or menu the player is using. */
+	render(options = {}, _options = {}) {
+		const opts = typeof options === "boolean" ? { ..._options, force: options } : (options ?? {});
+		const routine = this.rendered && !opts.force
+			&& Object.keys(opts).every((key) => PipBoyApp.#ROUTINE_KEYS.has(key));
+		if (!routine) return super.render(options, _options);
+		if (this.#editFlyoutCleanup) {
+			this.#renderHeld = true;
+			return Promise.resolve(this);
+		}
+		this.#queuedRender ??= new Promise((resolve) => {
+			setTimeout(() => {
+				this.#queuedRender = null;
+				if (!this.rendered) return resolve(this);
+				if (this.#editFlyoutCleanup) {
+					this.#renderHeld = true;
+					return resolve(this);
+				}
+				super.render({ force: false }).then(resolve, (err) => {
+					console.error(err);
+					resolve(this);
+				});
+			}, PipBoyApp.#RENDER_MERGE_MS);
+		});
+		return this.#queuedRender;
 	}
 
 	/** Fly-out editor for a `.pip-editable` element: number input prefilled with
@@ -1334,6 +1404,8 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 			if (max != null) value = Math.min(Number(max), value);
 			this.#closeEditFlyout();
 			if (!Number.isFinite(value) || value === current) return;
+			// Another player may have deleted the item while the fly-out was open.
+			if (doc !== this.actor && !this.actor.items.has(doc.id)) return;
 			PipBoyApp.playSound("select");
 			await doc.update({ [path]: value });
 		};
@@ -1422,6 +1494,8 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 			const action = ev.target.closest("[data-menu]")?.dataset.menu;
 			if (!action) return;
 			this.#closeEditFlyout();
+			// Another player may have deleted or handed it on while the menu was open.
+			if (!this.actor.items.has(item.id)) return;
 			PipBoyApp.playSound("select");
 			if (action === "quantity") {
 				// Hand off to the fly-out editor: it already clamps to the
@@ -1975,6 +2049,8 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 	/** Populate the lower readout with the selected item/skill's description. */
 	async #renderInfo() {
+		// The readout is being redrawn, so its scroll is the player's again.
+		this.#infoScrollFrozen = false;
 		const panel = this.element?.querySelector(".pipboy-lower");
 		if (!panel) return;
 		const titleEl = panel.querySelector(".pip-info-title");
@@ -2006,6 +2082,8 @@ export class PipBoyApp extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		// A newer selection may have happened during enrichment — don't clobber it.
 		if (this.#infoItemId !== item.id) return;
 		bodyEl.innerHTML = html || "<em>No description.</em>";
+		// Same item as before the re-render: back to where the player was reading.
+		if (this.#infoScroll.id === item.id) bodyEl.scrollTop = this.#infoScroll.top;
 	}
 
 	static async #onAttackWeapon(event, target) {
