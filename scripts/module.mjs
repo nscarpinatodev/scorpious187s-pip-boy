@@ -7,6 +7,8 @@ import { EncounterBuilder } from "./EncounterBuilder.mjs";
 import { WorldMapConfig } from "./WorldMapConfig.mjs";
 import { registerTokenHudButton } from "./token-hud.mjs";
 import { PipBoyXpAward } from "./xp-award.mjs";
+import { PerkDice } from "./perk-dice.mjs";
+import { AmmoLog } from "./ammo-log.mjs";
 
 export { MODULE_ID };
 
@@ -214,6 +216,33 @@ Hooks.once("init", async () => {
 		config: true,
 		type: Boolean,
 		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "perkDice", {
+		name: "SCORPIOUS_PIPBOY.Settings.PerkDice.Name",
+		hint: "SCORPIOUS_PIPBOY.Settings.PerkDice.Hint",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+	});
+
+	game.settings.register(MODULE_ID, "perkDiceFireWeapons", {
+		name: "SCORPIOUS_PIPBOY.Settings.PerkDiceFireWeapons.Name",
+		hint: "SCORPIOUS_PIPBOY.Settings.PerkDiceFireWeapons.Hint",
+		scope: "world",
+		config: true,
+		type: String,
+		default: "Flamer, Incinerator, Molotov, Shishkebab",
+	});
+
+	game.settings.register(MODULE_ID, "ammoLog", {
+		name: "SCORPIOUS_PIPBOY.Settings.AmmoLog.Name",
+		hint: "SCORPIOUS_PIPBOY.Settings.AmmoLog.Hint",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
 	});
 
 	// Perk effect definitions built in the level-up wizard, keyed by perk slug.
@@ -468,6 +497,9 @@ Hooks.once("ready", () => {
 	// Discover any GM-provided replacement sounds.
 	PipBoyApp.probeCustomSounds();
 
+	// Ammunition log: recognize the system's own spending.
+	AmmoLog.install();
+
 	// Restore the standing RETURN control if an encounter was left open.
 	PipBoyTravel.refreshReturnBanner();
 
@@ -512,6 +544,15 @@ Hooks.once("ready", () => {
 
 // Token HUD launch button.
 Hooks.on("renderTokenHUD", registerTokenHudButton);
+
+// Perk and magazine damage dice, added to the system's weapon damage dialog.
+Hooks.on("renderDialog", (app, html) => PerkDice.onRenderDialog(app, html));
+
+// Ammunition log: a whisper to the GMs for every round spent, and the roll behind it.
+Hooks.on("renderDialog", (app, html) => AmmoLog.onRenderDialog(app, html));
+Hooks.on("preUpdateItem", (...args) => AmmoLog.onPreUpdateItem(...args));
+Hooks.on("updateItem", (...args) => AmmoLog.onUpdateItem(...args));
+Hooks.on("preDeleteItem", (...args) => AmmoLog.onPreDeleteItem(...args));
 
 // V.A.T.S. — stamp targets onto fallout roll cards at creation (rolling client
 // only) and add the damage-application block when cards render.

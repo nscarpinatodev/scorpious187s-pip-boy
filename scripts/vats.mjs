@@ -122,14 +122,15 @@ export class PipBoyVats {
 	/** Pre-fill the next damage dialog's "Extra Dice" field with AP-bought
 	 *  dice. That field is deliberately the target: the system excludes it from
 	 *  the ammunition calculation, so AP-bought dice don't also cost ammo the
-	 *  way fire-rate dice do. */
+	 *  way fire-rate dice do. Added to what's there, not written over it: the
+	 *  perk dice may already be in the field. */
 	static primeExtraDice(count) {
 		if (!(count > 0)) return;
 		const hookId = Hooks.on("renderDialog", (app, html) => {
 			const element = html instanceof HTMLElement ? html : html?.[0];
 			const input = element?.querySelector(".extra-dice");
 			if (!input) return;
-			input.value = count;
+			input.value = String((Number(input.value) || 0) + count);
 			Hooks.off("renderDialog", hookId);
 		});
 		// Never leave the hook armed if the dialog doesn't appear.

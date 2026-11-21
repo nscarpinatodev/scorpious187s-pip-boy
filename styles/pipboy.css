@@ -1920,6 +1920,64 @@
 	filter: none;
 }
 
+/* --- perk damage dice, in the system's damage dialog ----------------------- */
+.pip-perk-dice {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 4px 4px 6px;
+	padding: 4px 6px;
+	border: 1px solid rgba(127, 127, 127, 0.4);
+	border-radius: 3px;
+	font-size: 0.9em;
+}
+.pip-perk-dice-head {
+	font-weight: 700;
+	opacity: 0.8;
+}
+.pip-perk-dice-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.pip-perk-dice-row input[type="checkbox"] {
+	flex: 0 0 auto;
+	margin: 0;
+}
+.pip-perk-dice-n {
+	font-weight: 700;
+	white-space: nowrap;
+}
+.pip-perk-dice-note {
+	flex-basis: 100%;
+	padding-left: 22px;
+	font-size: 0.9em;
+	opacity: 0.7;
+}
+.pip-perk-dice-row:not(label) .pip-perk-dice-note { padding-left: 0; }
+.pip-perk-dice-off { opacity: 0.45; }
+
+/* --- ammunition log, whispered to the GMs ---------------------------------- */
+.pip-ammo-log {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.pip-ammo-log-cause,
+.pip-ammo-log-by {
+	font-size: 0.9em;
+	opacity: 0.8;
+}
+.pip-ammo-log-warn {
+	border-left: 3px solid #b3261e;
+	padding-left: 6px;
+}
+.pip-ammo-log-alert {
+	color: #b3261e;
+	font-weight: 700;
+}
+
 /* --- XP award screen ------------------------------------------------------ */
 /* The same Vault-Tec casing as the travel counter, with the reels showing the
    running total rather than a d100 roll. */

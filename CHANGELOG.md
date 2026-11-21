@@ -3,6 +3,34 @@
 All notable changes to this module are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] — 2026-11-21
+
+### Added
+
+- **Perk damage dice.** When a weapon's damage is rolled, the dice from the
+  character's perks and magazines go into the damage dialog's Extra Dice,
+  which the system doesn't charge ammunition for, and the dialog lists where
+  each die came from. It works from the system's sheet as well as the Pip-Boy.
+  - Added automatically: Laser Commander, Commando, Rifleman, Gunslinger,
+    Size Matters, Iron Fist, Pyromaniac, Nerd Rage!, and the learned
+    Deadly Lasers!, The Starlet Sniper!, Surrounded by the Dead! (while
+    spending ammunition) and Nuke-the-Man! (for the whole party).
+  - Offered as checkboxes: sneak attacks, Blitz, attacks against a kind of
+    enemy, and the once-only magazines, once when read and once a scene when
+    learned.
+  - New world settings: **Perk Damage Dice**, on by default, and the
+    **Fire-Based Weapons** Pyromaniac counts.
+- **Ammunition log.** A new world setting, **Ammunition Log** (off by
+  default), whispers the GMs every time ammunition is spent: whose, how much,
+  and the attack or damage roll that spent it, with its Fire Rate and Extra
+  Dice. Each roll is checked against what the system's own rules say it should
+  cost, and an entry is flagged in red when more was taken.
+
+### Changed
+
+- Dice bought with AP for damage are now added to Extra Dice rather than
+  written over it, so they sit alongside the perk dice.
+
 ## [1.6.2] — 2026-11-20
 
 ### Fixed

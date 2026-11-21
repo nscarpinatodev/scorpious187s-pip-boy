@@ -256,6 +256,53 @@ system's own chat cards — no system files are patched.
   system's Fire Rate selector. An Accurate weapon fired after **Aim** uses the
   flat AP rate instead.
 
+### Perk damage dice
+The system rolls a weapon's damage rating and nothing more. The Pip-Boy adds
+the dice from the character's perks and magazines to the damage dialog's
+**Extra Dice**, which the system leaves out of its ammunition count. It works
+from the system's sheet, the Pip-Boy and the V.A.T.S. attack chain alike, and
+the dialog lists where each die came from.
+
+- **Always added**, from the weapon and the character:
+  - **Laser Commander**: +1 CD per rank with a ranged energy weapon.
+  - **Commando**: +1 CD per rank, ranged, Fire Rate 3 or more, not heavy.
+  - **Rifleman**: +1 CD per rank, ranged, two-handed, Fire Rate 2 or less, not heavy.
+  - **Gunslinger**: +1 CD per rank, ranged, one-handed, Fire Rate 2 or less.
+  - **Size Matters**: +1 CD per rank with a heavy weapon.
+  - **Iron Fist**: +1 CD unarmed.
+  - **Pyromaniac**: +1 CD per rank with a fire-based weapon. The system has no
+    fire damage type, so a setting names the weapons (Flamer, Incinerator,
+    Molotov and Shishkebab by default).
+  - **Nerd Rage!**: +1 CD per rank while below a quarter of maximum HP.
+  - Learned **Astoundingly Awesome Tales**: **Deadly Lasers!** (energy
+    weapons) and **The Starlet Sniper!** (Accurate weapons), +1 CD each.
+  - Learned **Surrounded by the Dead!**: +1 CD, but only while you spend
+    ammunition through Fire Rate.
+  - Learned **Nuke-the-Man!**: +1 CD for every party member.
+- **Checkboxes**, for what the Pip-Boy can't know: sneak attacks (**Ninja**,
+  **Mister Sandman**), **Blitz** at rank 2, attacks against a kind of enemy
+  ("against a ghoul"), and the once-only magazines (**Future Weapons Today**,
+  **Rocket Science for Toddlers**, **Blood on the Harp** and the rest). A
+  magazine that's been read but not learned is offered once; a learned one,
+  once a scene. Ticking a box adds its dice; unticking takes them off.
+
+Any dice you type into Extra Dice yourself stay put. Damage effects that perks
+add (Piercing, Vicious, Stun) aren't covered yet.
+
+### Ammunition log
+For tracking down ammunition that seems to go missing. With **Ammunition Log**
+on (a world setting, off by default), every time ammunition is spent the GMs
+get a whisper: whose ammunition, the count before and after, and the roll that
+spent it, attack or damage, with the weapon, Fire Rate and Extra Dice. It
+works however the roll was made: the system's sheet, the Pip-Boy, or a damage
+card's add-dice button.
+
+The system spends a weapon's Ammo per Shot on the attack and only what Fire
+Rate buys on the damage roll; Extra Dice are free. Each entry is checked
+against that, and when a roll takes more than it should, including a second
+deduction for the same roll, the entry is flagged in red with what it should
+have cost.
+
 ### Lower readout
 Clicking an item, perk, or trait (or rolling a skill) shows its **description** in
 the lower panel of the Pip-Boy casing — no extra window. The panel clears when you
@@ -324,6 +371,8 @@ World (GM):
 - **V.A.T.S. Damage Automation**, **Injury Prompts**, **Power-Armor Ablation**,
   **Auto-Roll Damage**, **Bonus Dice for AP** and its **cost model**.
 - **Major / Minor Action Tracking**.
+- **Perk Damage Dice**, and the **Fire-Based Weapons** Pyromaniac counts.
+- **Ammunition Log** — whisper the GMs every round spent (off by default).
 - **Award XP When Combat Ends**, and whether an award is **split between**
   the characters or given **in full to each**.
 - **Level Up** — **Skill Ranks per Level** (default 1), **Skill Rank Cap**

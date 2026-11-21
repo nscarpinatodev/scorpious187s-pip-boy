@@ -11,6 +11,12 @@
 	"SCORPIOUS_PIPBOY.Settings.FrameColor.Hint": "The casing colour used for the Pip-Boy window. The screen tint follows the frame.",
 	"SCORPIOUS_PIPBOY.Settings.Scanlines.Name": "CRT Scanlines",
 	"SCORPIOUS_PIPBOY.Settings.Scanlines.Hint": "Show the CRT scanline overlay on the Pip-Boy screen. Disable if the scanlines make text hard to read.",
+	"SCORPIOUS_PIPBOY.Settings.PerkDice.Name": "Perk Damage Dice",
+	"SCORPIOUS_PIPBOY.Settings.PerkDice.Hint": "When a weapon's damage is rolled, add the damage dice from the character's perks and magazines to Extra Dice: Laser Commander, Commando, Rifleman, Gunslinger, Size Matters, Iron Fist, Pyromaniac, Nerd Rage! and the learned Astoundingly Awesome Tales. Situational and once-only bonuses (sneak attacks, \"against a ghoul\", magazines read but not learned) appear as checkboxes in the damage dialog.",
+	"SCORPIOUS_PIPBOY.Settings.PerkDiceFireWeapons.Name": "Perk Damage Dice: Fire-Based Weapons",
+	"SCORPIOUS_PIPBOY.Settings.PerkDiceFireWeapons.Hint": "The weapons Pyromaniac counts as fire-based, by name or part of a name, separated by commas. The system has no fire damage type to go by.",
+	"SCORPIOUS_PIPBOY.Settings.AmmoLog.Name": "Ammunition Log",
+	"SCORPIOUS_PIPBOY.Settings.AmmoLog.Hint": "Whisper the GMs every time ammunition is spent: whose, how much, and the attack or damage roll that spent it. If a roll takes more than the system's own rules say it should, the entry is flagged. For tracking down ammunition going missing; off by default.",
 	"SCORPIOUS_PIPBOY.TileShowOnMap": "Show on Pip-Boy map",
 	"SCORPIOUS_PIPBOY.TileShowOnMapHint": "Draw this tile on the Pip-Boy's MAP tab (both the World and Local views of this scene)."
 }
